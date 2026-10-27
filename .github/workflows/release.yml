@@ -1,0 +1,68 @@
+name: Build & Deploy Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build:
+    name: Build Windows Production Release
+    runs-on: windows-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Windows Executable
+        run: flutter build windows --release
+
+      - name: Package Release ZIP
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}"
+          if (-not $ver) { $ver = "${{ inputs.version }}" }
+          if (-not $ver) { $ver = "1.0.0" }
+          $zipName = "iSecure-EduMaster-CCE-Pro-$ver-Windows.zip"
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $zipName
+          Write-Host "Created release package: $zipName"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: iSecure EduMaster CCE Pro ${{ github.ref_name || inputs.version || 'v1.0.0' }}
+          tag_name: ${{ github.ref_name || format('v{0}', inputs.version || '1.0.0') }}
+          body: |
+            ## 🎉 iSecure EduMaster CCE Pro अधिकृत रिलीज
+            **मालक:** iSecure Systems Pvt. Ltd.
+            **हेल्पलाइन:** 9326770568 | **ईमेल:** isecuredeveloper@gmail.com
+
+            ### 🚀 प्रमुख वैशिष्ट्ये:
+            - महाराष्ट्र प्राथमिक शिक्षण परिषद CCE नियमावलीनुसार संपूर्ण मूल्यमापन ऑटोमेशन
+            - प्रगती पुस्तक (Progress Card), एकत्रित निकाल गॅझेट, बोनाफाईड प्रमाणपत्र
+            - सुपरॲडमिन सुरक्षा गेट व क्रिप्टो परवाना की जनरेटर
+            - Supabase Cloud रिअल-टाइम ऑनलाइन डेटाबेस सिंक
+            - ऑटोमॅटिक इन-ॲप अपडेट यंत्रणा
+          files: |
+            iSecure-EduMaster-CCE-Pro-*-Windows.zip
+            version.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
