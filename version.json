@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "build": 1,
+  "title": "iSecure EduMaster CCE Pro v1.0.0",
+  "release_date": "2026-10-28",
+  "changelog": "• नवीन आवृत्ती: महाराष्ट्र प्राथमिक शिक्षण परिषद CCE नियमावलीनुसार संपूर्ण ऑटोमेशन\n• प्रोग्रेस कार्ड, निकाल गॅझेट, बोनाफाईड प्रमाणपत्र व सांख्यिकी अहवाल\n• iSecure Systems अधिकृत परवाना की व सुपरॲडमिन सुरक्षा गेट\n• Supabase Cloud रिअल-टाइम ऑनलाइन डेटाबेस सिंक\n• ऑनलाइन ऑटो-अपडेट कार्यक्षमता",
+  "download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/latest",
+  "is_mandatory": false
+}
