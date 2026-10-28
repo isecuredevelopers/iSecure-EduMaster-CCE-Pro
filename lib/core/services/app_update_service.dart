@@ -36,8 +36,8 @@ class AppUpdateInfo {
 }
 
 class AppUpdateService {
-  static const String currentVersion = '1.0.0';
-  static const String buildNumber = '1';
+  static const String currentVersion = '1.1.0';
+  static const String buildNumber = '2';
   static const String githubOwner = 'isecuredevelopers';
   static const String githubRepo = 'iSecure-EduMaster-CCE-Pro';
   static const String repoUrl = 'https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro';
