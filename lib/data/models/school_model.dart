@@ -28,6 +28,7 @@ class SchoolModel {
   String licenseType;
   String licenseExpiryDate;
   int minPassingPercentage;
+  String? softwareLogoUrl;
 
   SchoolModel({
     required this.id,
@@ -57,6 +58,7 @@ class SchoolModel {
     this.licenseType = 'शाळा व्यावसायिक परवाना (iSecure Commercial License)',
     this.licenseExpiryDate = '2026-06-30',
     this.minPassingPercentage = 35,
+    this.softwareLogoUrl = 'assets/images/isecure_favicon.png',
   });
 
   Map<String, dynamic> toJson() {
@@ -88,6 +90,7 @@ class SchoolModel {
       'license_type': licenseType,
       'license_expiry_date': licenseExpiryDate,
       'min_passing_percentage': minPassingPercentage,
+      'software_logo_url': softwareLogoUrl,
     };
   }
 
@@ -120,6 +123,7 @@ class SchoolModel {
       licenseType: json['license_type']?.toString() ?? 'शाळा व्यावसायिक परवाना (iSecure Commercial License)',
       licenseExpiryDate: json['license_expiry_date']?.toString() ?? '2026-06-30',
       minPassingPercentage: int.tryParse(json['min_passing_percentage']?.toString() ?? '35') ?? 35,
+      softwareLogoUrl: json['software_logo_url']?.toString() ?? 'assets/images/isecure_favicon.png',
     );
   }
 
@@ -151,6 +155,7 @@ class SchoolModel {
     String? licenseType,
     String? licenseExpiryDate,
     int? minPassingPercentage,
+    String? softwareLogoUrl,
   }) {
     return SchoolModel(
       id: id ?? this.id,
@@ -180,6 +185,7 @@ class SchoolModel {
       licenseType: licenseType ?? this.licenseType,
       licenseExpiryDate: licenseExpiryDate ?? this.licenseExpiryDate,
       minPassingPercentage: minPassingPercentage ?? this.minPassingPercentage,
+      softwareLogoUrl: softwareLogoUrl ?? this.softwareLogoUrl,
     );
   }
 }

@@ -57,6 +57,7 @@ class _SchoolSettingsScreenState extends State<SchoolSettingsScreen>
 
   // Whitelabel & Reseller License Controllers
   late TextEditingController _softwareTitleCtrl;
+  late TextEditingController _softwareLogoUrlCtrl;
   late TextEditingController _vendorNameCtrl;
   late TextEditingController _vendorContactCtrl;
   late TextEditingController _vendorEmailCtrl;
@@ -113,6 +114,11 @@ class _SchoolSettingsScreenState extends State<SchoolSettingsScreen>
     _aprCtrl = TextEditingController(text: wd.apr.toString());
 
     _softwareTitleCtrl = TextEditingController(text: s.softwareTitle);
+    _softwareLogoUrlCtrl = TextEditingController(
+      text: (s.softwareLogoUrl != null && s.softwareLogoUrl!.isNotEmpty)
+          ? s.softwareLogoUrl!
+          : 'assets/images/isecure_favicon.png',
+    );
     _vendorNameCtrl = TextEditingController(text: s.vendorName);
     _vendorContactCtrl = TextEditingController(text: s.vendorContact);
     _vendorEmailCtrl = TextEditingController(text: s.vendorEmail);
@@ -159,6 +165,7 @@ class _SchoolSettingsScreenState extends State<SchoolSettingsScreen>
     _aprCtrl.dispose();
 
     _softwareTitleCtrl.dispose();
+    _softwareLogoUrlCtrl.dispose();
     _vendorNameCtrl.dispose();
     _vendorContactCtrl.dispose();
     _vendorEmailCtrl.dispose();
@@ -191,6 +198,9 @@ class _SchoolSettingsScreenState extends State<SchoolSettingsScreen>
       headmasterMobile: _hmMobileCtrl.text.trim(),
       logoUrl: _logoUrlCtrl.text.trim().isNotEmpty ? _logoUrlCtrl.text.trim() : null,
       softwareTitle: _softwareTitleCtrl.text.trim(),
+      softwareLogoUrl: _softwareLogoUrlCtrl.text.trim().isNotEmpty
+          ? _softwareLogoUrlCtrl.text.trim()
+          : 'assets/images/isecure_favicon.png',
       vendorName: _vendorNameCtrl.text.trim(),
       vendorContact: _vendorContactCtrl.text.trim(),
       vendorEmail: _vendorEmailCtrl.text.trim(),
@@ -350,6 +360,50 @@ class _SchoolSettingsScreenState extends State<SchoolSettingsScreen>
       const SnackBar(
         content: Text('शाळेचा लोगो काढण्यात आला आहे.'),
         backgroundColor: AppColors.gradeD,
+      ),
+    );
+  }
+
+  Future<void> _pickSoftwareLogoFromPc() async {
+    try {
+      final scriptPath = 'scripts\\pick_image.ps1';
+      final result = await Process.run('powershell', [
+        '-ExecutionPolicy', 'Bypass',
+        '-File', scriptPath,
+      ]);
+      final pickedPath = result.stdout.toString().trim();
+      if (pickedPath.isNotEmpty) {
+        final file = File(pickedPath);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          final ext = pickedPath.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+          final base64Image = 'data:image/$ext;base64,${base64Encode(bytes)}';
+          setState(() {
+            _softwareLogoUrlCtrl.text = base64Image;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('सॉफ्टवेअर ब्रँड लोगो व फेव्हिकॉन निवडला! सेव्ह करण्यासाठी वरील "सर्व बदल सेव्ह करा" दाबा.'),
+                backgroundColor: AppColors.gradeA1,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Software logo pick error: $e');
+    }
+  }
+
+  void _resetSoftwareLogoToDefault() {
+    setState(() {
+      _softwareLogoUrlCtrl.text = 'assets/images/isecure_favicon.png';
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('मूळ अधिकृत iSecure ब्रँड लोगो व फेव्हिकॉन रिस्टोअर केला!'),
+        backgroundColor: AppColors.gradeA1,
       ),
     );
   }
@@ -1736,6 +1790,157 @@ class _SchoolSettingsScreenState extends State<SchoolSettingsScreen>
                             labelText: 'सपोर्ट ईमेल (Support Email)',
                             prefixIcon: Icon(Icons.email),
                           ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Card: SuperAdmin Only Software Brand Logo & Favicon Management
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFF93C5FD), width: 1.5),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.shield_outlined, color: AppColors.primary, size: 26),
+                          SizedBox(width: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'सॉफ्टवेअर ब्रँड लोगो व फेव्हिकॉन व्यवस्थापन (Software Brand Logo & Favicon)',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'हा लोगो व फेव्हिकॉन सॉफ्टवेअरची मुख्य ओळख आहे. हा बदलण्याचा अधिकार केवळ सुपर ॲडमिनला आहे.',
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFF3B82F6)),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.admin_panel_settings, size: 15, color: Color(0xFF1D4ED8)),
+                            SizedBox(width: 5),
+                            Text(
+                              'केवळ सुपर ॲडमिन अधिकार',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 28),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Preview Box
+                      Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFCBD5E1), width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.08),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: SchoolLogoWidget(
+                              logoUrl: _softwareLogoUrlCtrl.text.trim().isNotEmpty
+                                  ? _softwareLogoUrlCtrl.text.trim()
+                                  : 'assets/images/isecure_favicon.png',
+                              size: 76,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'सध्याचा ब्रँड फेव्हिकॉन',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 24),
+
+                      // Control Buttons & Input
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 10,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: _pickSoftwareLogoFromPc,
+                                  icon: const Icon(Icons.upload_file, size: 18),
+                                  label: const Text('संगणकावरून लोगो निवडा (Browse from PC)'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  ),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: _resetSoftwareLogoToDefault,
+                                  icon: const Icon(Icons.restore, size: 18, color: AppColors.teal),
+                                  label: const Text('मूळ iSecure लोगो रिस्टोअर करा (Default)'),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: AppColors.teal),
+                                    foregroundColor: AppColors.teal,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            TextFormField(
+                              controller: _softwareLogoUrlCtrl,
+                              onChanged: (_) => setState(() {}),
+                              decoration: const InputDecoration(
+                                labelText: 'सॉफ्टवेअर ब्रँड लोगो फाईल पाथ किंवा URL (Software Logo / Favicon Path)',
+                                prefixIcon: Icon(Icons.link),
+                                hintText: 'assets/images/isecure_favicon.png किंवा C:\\...\\brand_logo.png',
+                                isDense: true,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              '💡 टीप: शाळेचा निकालपत्रक लोगो शिक्षक टॅब १ (शाळा माहिती) मधून बदलू शकतात. परंतु संपूर्ण सॉफ्टवेअरची ब्रँडिंग व फेव्हिकॉन बदलण्याचा अधिकार केवळ iSecure Systems सुपर ॲडमिनकडेच सुरक्षित राहील.',
+                              style: TextStyle(fontSize: 11.5, color: AppColors.textMuted, height: 1.4),
+                            ),
+                          ],
                         ),
                       ),
                     ],

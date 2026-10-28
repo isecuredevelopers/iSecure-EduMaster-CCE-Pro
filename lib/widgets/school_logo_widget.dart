@@ -75,7 +75,29 @@ class SchoolLogoWidget extends StatelessWidget {
         );
       }
 
-      // Case 3: Local File Path (e.g. C:\Users\... or /path/to/logo.png)
+      // Case 3: Flutter Asset Path (e.g. assets/images/...)
+      if (trimmed.startsWith('assets/')) {
+        return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            border: border ?? Border.all(color: AppColors.border),
+          ),
+          child: ClipRRect(
+            borderRadius: radius,
+            child: Image.asset(
+              trimmed,
+              width: size,
+              height: size,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _buildFallback(radius),
+            ),
+          ),
+        );
+      }
+
+      // Case 4: Local File Path (e.g. C:\Users\... or /path/to/logo.png)
       if (!kIsWeb) {
         try {
           final file = File(trimmed);

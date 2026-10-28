@@ -37,7 +37,9 @@ class AppSidebar extends StatelessWidget {
                 Row(
                   children: [
                     SchoolLogoWidget(
-                      logoUrl: school.logoUrl,
+                      logoUrl: (school.softwareLogoUrl != null && school.softwareLogoUrl!.isNotEmpty)
+                          ? school.softwareLogoUrl
+                          : 'assets/images/isecure_favicon.png',
                       size: 44,
                       borderRadius: BorderRadius.circular(10),
                     ),
