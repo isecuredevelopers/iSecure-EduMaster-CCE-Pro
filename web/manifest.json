@@ -1,11 +1,11 @@
 {
-    "name": "myschool",
-    "short_name": "myschool",
+    "name": "iSecure EduMaster CCE Pro",
+    "short_name": "EduMaster CCE",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "iSecure EduMaster CCE Pro - महाराष्ट्र प्राथमिक शाळा सातत्यपूर्ण सर्वंकष मूल्यमापन प्रणाली",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

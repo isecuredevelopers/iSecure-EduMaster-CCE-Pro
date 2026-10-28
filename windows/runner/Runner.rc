@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.myschool.cce" "\0"
-            VALUE "FileDescription", "myschool" "\0"
+            VALUE "CompanyName", "iSecure Systems Pvt. Ltd." "\0"
+            VALUE "FileDescription", "iSecure EduMaster CCE Pro" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "myschool" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.myschool.cce. All rights reserved." "\0"
-            VALUE "OriginalFilename", "myschool.exe" "\0"
-            VALUE "ProductName", "myschool" "\0"
+            VALUE "InternalName", "iSecure-EduMaster-CCE-Pro" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 iSecure Systems Pvt. Ltd. All rights reserved." "\0"
+            VALUE "OriginalFilename", "iSecure-EduMaster-CCE-Pro.exe" "\0"
+            VALUE "ProductName", "iSecure EduMaster CCE Pro" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
