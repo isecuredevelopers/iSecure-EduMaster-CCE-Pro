@@ -609,7 +609,7 @@ class _SchoolSettingsScreenState extends State<SchoolSettingsScreen>
 
   void _unlockSuperAdmin() {
     final pin = _superAdminPinCtrl.text.trim();
-    if (pin == '9326' || pin == 'iSecure@2025' || pin == '7705' || pin == '9326770568') {
+    if (pin == 'Admin@1998') {
       setState(() {
         _isSuperAdminUnlocked = true;
         _superAdminPinCtrl.clear();
@@ -623,7 +623,7 @@ class _SchoolSettingsScreenState extends State<SchoolSettingsScreen>
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('चुकीचा पिन / पासवर्ड! केवळ iSecure Systems अधिकृत वापरकर्त्यांना प्रवेश आहे.'),
+          content: Text('चुकीचा पासवर्ड! केवळ अधिकृत सुपर ॲडमिनला प्रवेश आहे.'),
           backgroundColor: AppColors.gradeD,
         ),
       );
@@ -798,13 +798,12 @@ class _SchoolSettingsScreenState extends State<SchoolSettingsScreen>
                 controller: _superAdminPinCtrl,
                 obscureText: _pinObscure,
                 decoration: InputDecoration(
-                  labelText: 'सुपर ॲडमिन मास्टर पासवर्ड / पिन टाका',
+                  labelText: 'सुपर ॲडमिन पासवर्ड टाका',
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(_pinObscure ? Icons.visibility_off : Icons.visibility),
                     onPressed: () => setState(() => _pinObscure = !_pinObscure),
                   ),
-                  hintText: 'उदा. 9326 किंवा iSecure@2025',
                 ),
                 onFieldSubmitted: (_) => _unlockSuperAdmin(),
               ),
