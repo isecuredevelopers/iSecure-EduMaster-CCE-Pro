@@ -52,4 +52,34 @@ class AcademicYearModel {
       isActive: json['is_active'] == true,
     );
   }
+
+  /// मागील ६०+ शैक्षणिक वर्षे तयार करण्यासाठी उपयुक्त पद्धत (१९६५ ते २०२५)
+  static List<AcademicYearModel> generate60PlusYears({
+    String schoolId = 'school-01',
+    int startYear = 1965,
+    int endYear = 2025,
+    String activeYearName = '2025-26',
+  }) {
+    final List<AcademicYearModel> list = [];
+    for (int y = endYear; y >= startYear; y--) {
+      final nextYMod = (y + 1) % 100;
+      final nextYStr = nextYMod.toString().padLeft(2, '0');
+      final yearName = '$y-$nextYStr';
+      final id = 'year-$yearName';
+      final isActive = (yearName == activeYearName);
+      list.add(AcademicYearModel(
+        id: id,
+        schoolId: schoolId,
+        yearName: yearName,
+        startDate: DateTime(y, 6, 15),
+        endDate: DateTime(y + 1, 5, 1),
+        sem1ResultDate: DateTime(y, 10, 25),
+        sem2ResultDate: DateTime(y + 1, 4, 30),
+        reopeningDate: DateTime(y + 1, 6, 15),
+        reopeningMessage: 'उन्हाळी सुट्टीनंतर शाळा दिनांक १५ जून रोजी सुरू होईल.',
+        isActive: isActive,
+      ));
+    }
+    return list;
+  }
 }

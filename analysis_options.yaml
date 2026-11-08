@@ -5,6 +5,14 @@ analyzer:
     deprecated_member_use: ignore
     unnecessary_underscores: ignore
     unnecessary_to_list_in_spreads: ignore
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   rules:

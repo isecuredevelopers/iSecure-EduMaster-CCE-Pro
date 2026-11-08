@@ -13,8 +13,13 @@ import 'screens/evaluation/attendance_screen.dart';
 import 'screens/reports/progress_card_screen.dart';
 import 'screens/reports/result_gazette_screen.dart';
 import 'screens/reports/bonafide_certificate_screen.dart';
+import 'screens/reports/leaving_certificate_screen.dart';
+import 'screens/reports/general_register_extract_screen.dart';
+import 'screens/reports/yearly_class_students_screen.dart';
 import 'screens/reports/statistics_screen.dart';
 import 'screens/students/student_promotion_screen.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/users/teacher_allocation_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,6 +82,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
       );
     }
 
+    if (!state.isLoggedIn) {
+      return const LoginScreen();
+    }
+
     Widget currentScreen;
     switch (_currentIndex) {
       case 0:
@@ -107,10 +116,22 @@ class _MainShellScreenState extends State<MainShellScreen> {
         currentScreen = const BonafideCertificateScreen();
         break;
       case 9:
-        currentScreen = const StatisticsScreen();
+        currentScreen = const LeavingCertificateScreen();
         break;
       case 10:
+        currentScreen = const GeneralRegisterExtractScreen();
+        break;
+      case 11:
+        currentScreen = const YearlyClassStudentsScreen();
+        break;
+      case 12:
+        currentScreen = const StatisticsScreen();
+        break;
+      case 13:
         currentScreen = const StudentPromotionScreen();
+        break;
+      case 14:
+        currentScreen = const TeacherAllocationScreen();
         break;
       default:
         currentScreen = DashboardScreen(onNavigate: _navigateTo);

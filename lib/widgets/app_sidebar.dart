@@ -81,22 +81,22 @@ class AppSidebar extends StatelessWidget {
                     border: Border.all(color: const Color(0xFF334155)),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.calendar_today, size: 13, color: AppColors.accent),
-                          const SizedBox(width: 6),
-                          Text(
-                            'शैक्षणिक वर्ष: ${state.currentYear.yearName}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      const Icon(Icons.calendar_today, size: 13, color: AppColors.accent),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'शैक्षणिक वर्ष: ${state.currentYear.yearName}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
                           ),
-                        ],
+                        ),
                       ),
+                      const SizedBox(width: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
@@ -111,10 +111,84 @@ class AppSidebar extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
+
+                // Current Logged In User Profile & Logout
+                if (state.currentUser != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: state.currentUser!.isAdmin ? const Color(0xFF3B82F6) : const Color(0xFF10B981),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 13,
+                          backgroundColor: state.currentUser!.isSuperAdmin
+                              ? const Color(0xFFDC2626)
+                              : (state.currentUser!.isAdmin ? const Color(0xFF2563EB) : const Color(0xFF059669)),
+                          child: Icon(
+                            state.currentUser!.isSuperAdmin
+                                ? Icons.security
+                                : (state.currentUser!.isAdmin ? Icons.admin_panel_settings : Icons.person),
+                            size: 15,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                state.currentUser!.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                state.currentUser!.isSuperAdmin
+                                    ? 'सुपर ॲडमिन (सर्वोच्च अधिकार)'
+                                    : (state.currentUser!.isAdmin
+                                        ? '${state.currentUser!.roleTextMr} (पूर्ण अधिकार)'
+                                        : state.currentUser!.allocationSummary),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: state.currentUser!.isSuperAdmin
+                                      ? const Color(0xFFFCA5A5)
+                                      : (state.currentUser!.isAdmin ? const Color(0xFF93C5FD) : const Color(0xFF6EE7B7)),
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.logout, size: 15, color: Color(0xFFF87171)),
+                          tooltip: 'लॉगआउट (Sign Out)',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => _confirmLogout(context, state),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -170,7 +244,8 @@ class AppSidebar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               children: [
                 _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'डॅशबोर्ड (Dashboard)'),
-                _buildNavItem(1, Icons.tune_outlined, Icons.tune, 'सॉफ्टवेअर सेटिंग्ज (School Settings)'),
+                if (state.currentUser?.isAdmin ?? true)
+                  _buildNavItem(1, Icons.tune_outlined, Icons.tune, 'सॉफ्टवेअर सेटिंग्ज (School Settings)'),
                 _buildNavItem(2, Icons.people_outline, Icons.people, 'विद्यार्थी यादी (Students)'),
                 _buildNavItem(3, Icons.calculate_outlined, Icons.calculate, 'आकारिक-संकलित गुणनोंद (Marks)'),
                 _buildNavItem(4, Icons.edit_note_outlined, Icons.edit_note, 'वर्णनात्मक नोंदी (Remarks)'),
@@ -178,8 +253,14 @@ class AppSidebar extends StatelessWidget {
                 _buildNavItem(6, Icons.card_membership_outlined, Icons.card_membership, 'प्रगती पुस्तक (Progress Card)'),
                 _buildNavItem(7, Icons.table_chart_outlined, Icons.table_chart, 'निकाल पत्रक (Result Gazette)'),
                 _buildNavItem(8, Icons.badge_outlined, Icons.badge, 'ओळखपत्रे / बोनाफाईड (Certificates)'),
-                _buildNavItem(9, Icons.analytics_outlined, Icons.analytics, 'सांख्यिकी तक्ता (Statistics)'),
-                _buildNavItem(10, Icons.upgrade_outlined, Icons.upgrade, 'वर्गोन्नती (Promotion)'),
+                _buildNavItem(9, Icons.description_outlined, Icons.description, 'शाळा सोडल्याचा दाखला (L.C.)'),
+                _buildNavItem(10, Icons.menu_book_outlined, Icons.menu_book, 'रजिस्टर नं. १ उतारा (GR Extract)'),
+                _buildNavItem(11, Icons.history_edu_outlined, Icons.history_edu, 'वर्ष व वर्गनिहाय नोंद (Yearly Archive)'),
+                _buildNavItem(12, Icons.analytics_outlined, Icons.analytics, 'सांख्यिकी तक्ता (Statistics)'),
+                if (state.currentUser?.isAdmin ?? true)
+                  _buildNavItem(13, Icons.upgrade_outlined, Icons.upgrade, 'वर्गोन्नती (Promotion)'),
+                if (state.currentUser?.isAdmin ?? true)
+                  _buildNavItem(14, Icons.assignment_ind_outlined, Icons.assignment_ind, 'शिक्षक वाटप (Teacher Allocation)'),
               ],
             ),
           ),
@@ -261,10 +342,14 @@ class AppSidebar extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'v${AppUpdateService.currentVersion} (Build ${AppUpdateService.buildNumber})',
-                      style: TextStyle(color: Color(0xFF64748B), fontSize: 10),
+                    Flexible(
+                      child: Text(
+                        'v${AppUpdateService.currentVersion} (b${AppUpdateService.buildNumber})',
+                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 10),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    const SizedBox(width: 4),
                     InkWell(
                       onTap: state.isCheckingUpdate
                           ? null
@@ -310,6 +395,8 @@ class AppSidebar extends StatelessWidget {
     required String Function(T) display,
     required Function(T?) onChanged,
   }) {
+    final effectiveValue = items.contains(value) ? value : (items.isNotEmpty ? items.first : null);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
@@ -319,8 +406,9 @@ class AppSidebar extends StatelessWidget {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
-          value: value,
+          value: effectiveValue,
           isDense: true,
+          isExpanded: true,
           dropdownColor: const Color(0xFF1E293B),
           style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
           icon: const Icon(Icons.arrow_drop_down, color: AppColors.textMuted, size: 16),
@@ -332,6 +420,39 @@ class AppSidebar extends StatelessWidget {
           }).toList(),
           onChanged: onChanged,
         ),
+      ),
+    );
+  }
+
+  void _confirmLogout(BuildContext context, AppStateProvider state) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.logout, color: Color(0xFFDC2626)),
+            SizedBox(width: 8),
+            Text('लॉगआउट करा'),
+          ],
+        ),
+        content: Text('तुम्हाला खाते (${state.currentUser?.name}) मधून लॉगआउट करायचे आहे का?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('रद्द करा'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await state.logout();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('लॉगआउट'),
+          ),
+        ],
       ),
     );
   }

@@ -9,6 +9,7 @@ import '../../providers/app_state_provider.dart';
 import '../../data/models/working_days_model.dart';
 import '../../widgets/school_logo_widget.dart';
 import '../../core/services/app_update_service.dart';
+import '../users/teacher_allocation_screen.dart';
 
 class SchoolSettingsScreen extends StatefulWidget {
   const SchoolSettingsScreen({super.key});
@@ -861,6 +862,23 @@ class _SchoolSettingsScreenState extends State<SchoolSettingsScreen>
             ),
             const SizedBox(width: 10),
           ],
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const TeacherAllocationScreen()),
+                );
+              },
+              icon: const Icon(Icons.assignment_ind, size: 16, color: Color(0xFF4F46E5)),
+              label: const Text('शिक्षक वर्ग वाटप', style: TextStyle(color: Color(0xFF4F46E5), fontSize: 12, fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFFC7D2FE)),
+                backgroundColor: const Color(0xFFEEF2FF),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 20),
             child: ElevatedButton.icon(

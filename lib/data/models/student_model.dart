@@ -28,6 +28,15 @@ class StudentModel {
   String address;
   String fatherOccupation;
   String motherOccupation;
+  String uDiseNo;
+  String nationality;
+  String motherTongue;
+  String religion;
+  String caste;
+  String dobWords;
+  String previousSchool;
+  DateTime? admissionDate;
+  String remarks;
   double? heightSem1;
   double? heightSem2;
   double? weightSem1;
@@ -40,11 +49,11 @@ class StudentModel {
     required this.schoolId,
     required this.academicYearId,
     required this.standard,
-    required this.division,
-    required this.grNo,
+    this.division = '1',
+    this.grNo = '',
     required this.rollNoSem1,
     int? rollNoSem2,
-    required this.studentNameMr,
+    this.studentNameMr = '',
     this.studentNameEn = '',
     this.fatherName = '',
     this.motherName = '',
@@ -65,6 +74,15 @@ class StudentModel {
     this.address = '',
     this.fatherOccupation = 'शेती',
     this.motherOccupation = 'गृहिणी',
+    this.uDiseNo = '',
+    this.nationality = 'भारतीय',
+    this.motherTongue = 'मराठी',
+    this.religion = '',
+    this.caste = '',
+    this.dobWords = '',
+    this.previousSchool = '',
+    this.admissionDate,
+    this.remarks = '',
     this.heightSem1,
     this.heightSem2,
     this.weightSem1,
@@ -121,6 +139,15 @@ class StudentModel {
       'address': address,
       'father_occupation': fatherOccupation,
       'mother_occupation': motherOccupation,
+      'u_dise_no': uDiseNo,
+      'nationality': nationality,
+      'mother_tongue': motherTongue,
+      'religion': religion,
+      'caste': caste,
+      'dob_words': dobWords,
+      'previous_school': previousSchool,
+      'admission_date': admissionDate?.toIso8601String(),
+      'remarks': remarks,
       'height_sem1': heightSem1,
       'height_sem2': heightSem2,
       'weight_sem1': weightSem1,
@@ -133,9 +160,9 @@ class StudentModel {
   factory StudentModel.fromJson(Map<String, dynamic> json) {
     DateTime dob = DateTime.now().subtract(const Duration(days: 365 * 8));
     if (json['date_of_birth'] != null) {
-      dob = DateTime.tryParse(json['date_of_birth']) ?? dob;
+      dob = DateTime.tryParse(json['date_of_birth'].toString()) ?? dob;
     } else if (json['BirthDate'] != null) {
-      dob = DateTime.tryParse(json['BirthDate']) ?? dob;
+      dob = DateTime.tryParse(json['BirthDate'].toString()) ?? dob;
     }
 
     return StudentModel(
@@ -168,6 +195,15 @@ class StudentModel {
       address: json['address']?.toString() ?? json['Address']?.toString() ?? '',
       fatherOccupation: json['father_occupation']?.toString() ?? json['FatherWork']?.toString() ?? 'शेती',
       motherOccupation: json['mother_occupation']?.toString() ?? json['MotherWork']?.toString() ?? 'गृहिणी',
+      uDiseNo: json['u_dise_no']?.toString() ?? '',
+      nationality: json['nationality']?.toString() ?? 'भारतीय',
+      motherTongue: json['mother_tongue']?.toString() ?? 'मराठी',
+      religion: json['religion']?.toString() ?? '',
+      caste: json['caste']?.toString() ?? '',
+      dobWords: json['dob_words']?.toString() ?? '',
+      previousSchool: json['previous_school']?.toString() ?? '',
+      admissionDate: json['admission_date'] != null ? DateTime.tryParse(json['admission_date'].toString()) : null,
+      remarks: json['remarks']?.toString() ?? '',
       heightSem1: double.tryParse(json['height_sem1']?.toString() ?? json['Height']?.toString() ?? ''),
       heightSem2: double.tryParse(json['height_sem2']?.toString() ?? json['Height2']?.toString() ?? ''),
       weightSem1: double.tryParse(json['weight_sem1']?.toString() ?? json['Weight']?.toString() ?? ''),

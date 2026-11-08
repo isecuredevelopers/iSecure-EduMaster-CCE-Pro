@@ -9,9 +9,13 @@ import '../data/models/evaluation_model.dart';
 import '../data/models/descriptive_note_model.dart';
 import '../data/models/attendance_model.dart';
 import '../data/models/working_days_model.dart';
+import '../data/models/leaving_certificate_model.dart';
+import '../data/models/general_register_extract_model.dart';
+import '../data/models/user_model.dart';
 import '../data/local/sample_data.dart';
 import '../data/supabase/supabase_service.dart';
 import '../core/services/app_update_service.dart';
+import '../core/services/marathi_date_formatter.dart';
 
 class AppStateProvider extends ChangeNotifier {
   late SchoolModel _school;
@@ -28,9 +32,15 @@ class AppStateProvider extends ChangeNotifier {
   List<EvaluationModel> _evaluations = [];
   List<DescriptiveNoteModel> _descriptiveNotes = [];
   List<AttendanceModel> _attendanceList = [];
+  List<LeavingCertificateModel> _leavingCertificates = [];
+  List<GeneralRegisterExtractModel> _grExtracts = [];
   late WorkingDaysModel _workingDays;
   List<GradingScaleModel> _gradingScales = [];
   Map<String, List<String>> _remarksBank = {};
+
+  // User Authentication & Class Teacher Allocation
+  List<UserModel> _users = [];
+  UserModel? _currentUser;
 
   String _supabaseUrl = '';
   String _supabaseAnonKey = '';
@@ -53,6 +63,8 @@ class AppStateProvider extends ChangeNotifier {
   List<EvaluationModel> get evaluations => _evaluations;
   List<DescriptiveNoteModel> get descriptiveNotes => _descriptiveNotes;
   List<AttendanceModel> get attendanceList => _attendanceList;
+  List<LeavingCertificateModel> get leavingCertificates => _leavingCertificates;
+  List<GeneralRegisterExtractModel> get grExtracts => _grExtracts;
   WorkingDaysModel get workingDays => _workingDays;
   List<GradingScaleModel> get gradingScales => _gradingScales;
   Map<String, List<String>> get remarksBank => _remarksBank;
@@ -63,8 +75,28 @@ class AppStateProvider extends ChangeNotifier {
   AppUpdateInfo? get availableUpdate => _availableUpdate;
   bool get isCheckingUpdate => _isCheckingUpdate;
 
-  List<int> get availableStandards => [1, 2, 3, 4, 5, 6, 7, 8];
-  List<String> get availableDivisions => ['1', '2', '3', 'A', 'B', 'C'];
+  // User Auth Getters
+  UserModel? get currentUser => _currentUser;
+  bool get isLoggedIn => _currentUser != null;
+  List<UserModel> get users => _users;
+
+  // Available Standards restricted by currently logged in user/teacher
+  List<int> get availableStandards {
+    if (_currentUser == null || _currentUser!.isAdmin) {
+      return [1, 2, 3, 4, 5, 6, 7, 8];
+    }
+    final alloc = _currentUser!.allocatedStandards;
+    return alloc.isNotEmpty ? alloc : [1];
+  }
+
+  // Available Divisions restricted by currently logged in user/teacher
+  List<String> get availableDivisions {
+    if (_currentUser == null || _currentUser!.isAdmin) {
+      return ['1', '2', '3', 'A', 'B', 'C'];
+    }
+    final alloc = _currentUser!.getAllocatedDivisionsFor(_selectedStd);
+    return alloc.isNotEmpty ? alloc : ['1'];
+  }
 
   List<SubjectModel> get currentStdSubjects =>
       _subjects.where((s) => s.isApplicableForStd(_selectedStd)).toList();
@@ -77,6 +109,7 @@ class AppStateProvider extends ChangeNotifier {
         ..sort((a, b) => a.getRollNo(_selectedSemester).compareTo(b.getRollNo(_selectedSemester)));
 
   AppStateProvider() {
+    _ensureDefaultUsers();
     _initData();
   }
 
@@ -87,6 +120,7 @@ class AppStateProvider extends ChangeNotifier {
     _school = SampleData.defaultSchool;
     _academicYears = SampleData.defaultYears;
     _currentYear = _academicYears.firstWhere((y) => y.isActive, orElse: () => _academicYears.first);
+    _ensureHistoricalYears();
     _subjects = SampleData.defaultSubjects;
     _selectedSubject = _subjects.first;
     _students = SampleData.defaultStudents;
@@ -135,6 +169,9 @@ class AppStateProvider extends ChangeNotifier {
   // Setters & Actions
   void setStandard(int std) {
     _selectedStd = std;
+    if (!availableDivisions.contains(_selectedDiv) && availableDivisions.isNotEmpty) {
+      _selectedDiv = availableDivisions.first;
+    }
     final stdSubs = currentStdSubjects;
     if (!stdSubs.any((s) => s.subjectCode == _selectedSubject.subjectCode)) {
       if (stdSubs.isNotEmpty) _selectedSubject = stdSubs.first;
@@ -233,14 +270,74 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   // Student Operations
-  Future<void> addOrUpdateStudent(StudentModel stu) async {
+  void _ensureRecordsForStudent(StudentModel stu) {
+    // Applicable subjects for this student's standard
+    final stdSubs = _subjects.where((s) => s.isApplicableForStd(stu.standard)).toList();
+    for (var sub in stdSubs) {
+      for (int sem = 1; sem <= 2; sem++) {
+        final evalExists = _evaluations.any((e) =>
+            e.studentId == stu.id &&
+            e.semester == sem &&
+            e.subjectCode == sub.subjectCode);
+        if (!evalExists) {
+          _evaluations.add(EvaluationModel(
+            id: '${stu.id}_${sem}_${sub.subjectCode}',
+            schoolId: _school.id,
+            academicYearId: _currentYear.id,
+            studentId: stu.id,
+            standard: stu.standard,
+            division: stu.division,
+            semester: sem,
+            subjectCode: sub.subjectCode,
+          ));
+        }
+      }
+    }
+
+    for (int sem = 1; sem <= 2; sem++) {
+      final noteExists = _descriptiveNotes.any((n) =>
+          n.studentId == stu.id && n.semester == sem);
+      if (!noteExists) {
+        _descriptiveNotes.add(DescriptiveNoteModel(
+          id: 'note_${stu.id}_$sem',
+          schoolId: _school.id,
+          academicYearId: _currentYear.id,
+          studentId: stu.id,
+          standard: stu.standard,
+          division: stu.division,
+          semester: sem,
+        ));
+      }
+    }
+
+    final attExists = _attendanceList.any((a) => a.studentId == stu.id);
+    if (!attExists) {
+      _attendanceList.add(AttendanceModel(
+        id: 'att_${stu.id}',
+        schoolId: _school.id,
+        academicYearId: _currentYear.id,
+        studentId: stu.id,
+        standard: stu.standard,
+        division: stu.division,
+      ));
+    }
+  }
+
+  Future<void> addOrUpdateStudent(StudentModel stu, {bool switchToStudentClass = true}) async {
     final idx = _students.indexWhere((s) => s.id == stu.id);
     if (idx >= 0) {
       _students[idx] = stu;
     } else {
       _students.add(stu);
     }
-    _ensureRecordsForCurrentSelection();
+    _ensureRecordsForStudent(stu);
+
+    if (switchToStudentClass) {
+      _selectedStd = stu.standard;
+      _selectedDiv = stu.division;
+      _ensureRecordsForCurrentSelection();
+    }
+
     await _saveToLocal();
     if (_isCloudConnected) {
       await SupabaseService.saveStudentToCloud(stu);
@@ -360,6 +457,152 @@ class AppStateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Leaving Certificate (शाळा सोडल्याचा दाखला) Operations
+  LeavingCertificateModel getOrCreateLeavingCertificate(StudentModel student) {
+    final idx = _leavingCertificates.indexWhere((l) => l.studentId == student.id);
+    if (idx >= 0) {
+      return _leavingCertificates[idx];
+    }
+
+    final nextLcNo = (_leavingCertificates.length + 1).toString();
+    final addressParts = [
+      student.birthPlace,
+      if (student.taluka.isNotEmpty) 'ता. ${student.taluka}',
+      if (student.district.isNotEmpty) 'जि. ${student.district}',
+    ].where((s) => s.trim().isNotEmpty).join(', ');
+
+    final newLc = LeavingCertificateModel(
+      id: 'lc_${student.id}',
+      studentId: student.id,
+      lcNo: nextLcNo,
+      generalRegNo: student.grNo,
+      uDiseNo: student.uDiseNo.isNotEmpty ? student.uDiseNo : _school.udiseCode,
+      studentSaralId: student.saralId,
+      uidNo: student.aadhaarNo,
+      studentName: student.studentNameMr,
+      motherName: student.motherName,
+      nationality: student.nationality.isNotEmpty ? student.nationality : 'भारतीय',
+      motherTongue: student.motherTongue.isNotEmpty ? student.motherTongue : 'मराठी',
+      religion: student.religion,
+      caste: student.caste,
+      subCaste: student.subCaste,
+      birthPlace: addressParts.isNotEmpty ? addressParts : student.birthPlace,
+      dob: student.dateOfBirth,
+      dobWords: student.dobWords.isNotEmpty
+          ? student.dobWords
+          : MarathiDateFormatter.toMarathiWords(student.dateOfBirth),
+      previousSchool: student.previousSchool,
+      admissionDate: student.admissionDate ?? student.dateOfBirth,
+      admissionClass: MarathiDateFormatter.classToMarathi(student.standard),
+      progress: 'चांगली',
+      conduct: 'चांगली',
+      leavingDate: DateTime.now(),
+      currentClass: 'इयत्ता ${MarathiDateFormatter.classToMarathi(student.standard)}',
+      reasonForLeaving: 'पुढील शिक्षणासाठी',
+      remarks: student.remarks,
+      issueDate: DateTime.now(),
+      copyCount: 1,
+      copyType: 'Original',
+    );
+
+    _leavingCertificates.add(newLc);
+    _saveToLocal();
+    return newLc;
+  }
+
+  Future<void> saveLeavingCertificate(LeavingCertificateModel lc) async {
+    final idx = _leavingCertificates.indexWhere((l) => l.id == lc.id);
+    if (idx >= 0) {
+      _leavingCertificates[idx] = lc;
+    } else {
+      _leavingCertificates.add(lc);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> updateLcCopyType(LeavingCertificateModel lc, String type) async {
+    lc.copyType = type;
+    if (type == 'Original') {
+      lc.copyCount = 1;
+    } else {
+      if (lc.copyCount <= 1) lc.copyCount = 2;
+    }
+    await saveLeavingCertificate(lc);
+  }
+
+  Future<void> issueFreshOriginalLc(LeavingCertificateModel lc) async {
+    lc.copyCount = 1;
+    lc.copyType = 'Original';
+    await saveLeavingCertificate(lc);
+  }
+
+  // General Register Extract (रजिस्टर नंबर १ चा उतारा) Operations
+  GeneralRegisterExtractModel getOrCreateGrExtract(StudentModel student) {
+    final idx = _grExtracts.indexWhere((g) => g.studentId == student.id);
+    if (idx >= 0) {
+      return _grExtracts[idx];
+    }
+
+    // Check if LC exists for this student to prefill leaving details
+    final lcIdx = _leavingCertificates.indexWhere((l) => l.studentId == student.id);
+    final LeavingCertificateModel? lc = lcIdx >= 0 ? _leavingCertificates[lcIdx] : null;
+
+    final addressParts = [
+      student.birthPlace,
+      if (student.taluka.isNotEmpty) 'ता. ${student.taluka}',
+      if (student.district.isNotEmpty) 'जि. ${student.district}',
+    ].where((s) => s.trim().isNotEmpty).join(', ');
+
+    final newExtract = GeneralRegisterExtractModel(
+      id: 'gr_extract_${student.id}',
+      studentId: student.id,
+      generalRegNo: student.grNo,
+      uDiseNo: student.uDiseNo.isNotEmpty ? student.uDiseNo : _school.udiseCode,
+      studentName: student.studentNameMr,
+      motherName: student.motherName,
+      caste: student.caste,
+      subCaste: student.subCaste,
+      birthPlace: addressParts.isNotEmpty ? addressParts : student.birthPlace,
+      dob: student.dateOfBirth,
+      dobWords: student.dobWords.isNotEmpty
+          ? student.dobWords
+          : MarathiDateFormatter.toMarathiWords(student.dateOfBirth),
+      previousSchool: student.previousSchool,
+      admissionDate: student.admissionDate ?? student.dateOfBirth,
+      admissionClass: lc?.admissionClass ?? MarathiDateFormatter.classToMarathi(student.standard),
+      progress: lc?.progress ?? 'चांगली',
+      conduct: lc?.conduct ?? 'चांगली',
+      leavingDate: lc?.leavingDate,
+      currentClass: lc?.currentClass ?? 'इयत्ता ${MarathiDateFormatter.classToMarathi(student.standard)}',
+      reasonForLeaving: lc?.reasonForLeaving ?? (lc != null ? 'पुढील शिक्षणासाठी' : '-'),
+      remarks: lc?.remarks ?? student.remarks,
+      issueDate: DateTime.now(),
+      copyType: 'Original',
+      isCurrentlyStudying: lc == null,
+    );
+
+    _grExtracts.add(newExtract);
+    _saveToLocal();
+    return newExtract;
+  }
+
+  Future<void> saveGrExtract(GeneralRegisterExtractModel extract) async {
+    final idx = _grExtracts.indexWhere((g) => g.id == extract.id);
+    if (idx >= 0) {
+      _grExtracts[idx] = extract;
+    } else {
+      _grExtracts.add(extract);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> updateGrExtractCopyType(GeneralRegisterExtractModel extract, String type) async {
+    extract.copyType = type;
+    await saveGrExtract(extract);
+  }
+
   // Working Days Update
   Future<void> updateWorkingDays(WorkingDaysModel wd) async {
     _workingDays = wd;
@@ -368,6 +611,51 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   // Academic Year Management
+  void _ensureHistoricalYears() {
+    // 1. Remove future years beyond current academic year 2025-26
+    _academicYears.removeWhere((y) {
+      final yStart = int.tryParse(y.yearName.split('-').first) ?? 0;
+      return yStart > 2025;
+    });
+
+    final existingIds = _academicYears.map((y) => y.id).toSet();
+    final all60 = AcademicYearModel.generate60PlusYears(
+      schoolId: _school.id,
+      startYear: 1965,
+      endYear: 2025,
+      activeYearName: '2025-26',
+    );
+    for (var y in all60) {
+      if (!existingIds.contains(y.id)) {
+        _academicYears.add(y);
+        existingIds.add(y.id);
+      }
+    }
+
+    // Ensure 2025-26 is active
+    final curStart = int.tryParse(_currentYear.yearName.split('-').first) ?? 0;
+    if (curStart > 2025 || !_academicYears.any((y) => y.id == _currentYear.id)) {
+      _currentYear = _academicYears.firstWhere((y) => y.yearName == '2025-26', orElse: () => _academicYears.first);
+      for (var y in _academicYears) {
+        y.isActive = (y.id == _currentYear.id);
+      }
+    }
+
+    // Sort descending by yearName (newest first: 2025-26, 2024-25, ... down to 1965-66)
+    _academicYears.sort((a, b) => b.yearName.compareTo(a.yearName));
+  }
+
+  AcademicYearModel getAcademicYear(String yearId) {
+    return _academicYears.firstWhere(
+      (y) => y.id == yearId,
+      orElse: () => AcademicYearModel(
+        id: yearId,
+        schoolId: _school.id,
+        yearName: yearId.replaceFirst('year-', ''),
+      ),
+    );
+  }
+
   Future<void> addNewAcademicYear(String yearName) async {
     if (yearName.trim().isEmpty) return;
     final newId = 'year-${yearName.replaceAll(' ', '').replaceAll('/', '-')}_${DateTime.now().millisecondsSinceEpoch}';
@@ -550,6 +838,15 @@ class AppStateProvider extends ChangeNotifier {
         taluka: stu.taluka,
         district: stu.district,
         address: stu.address,
+        uDiseNo: stu.uDiseNo,
+        nationality: stu.nationality,
+        motherTongue: stu.motherTongue,
+        religion: stu.religion,
+        caste: stu.caste,
+        dobWords: stu.dobWords,
+        previousSchool: stu.previousSchool,
+        admissionDate: stu.admissionDate,
+        remarks: stu.remarks,
         isPromoted: true,
       );
       _students.add(promoted);
@@ -558,6 +855,223 @@ class AppStateProvider extends ChangeNotifier {
     await _saveToLocal();
     notifyListeners();
     return promotedCount;
+  }
+
+  // User Authentication & Class Teacher Allocation
+  void _ensureDefaultUsers() {
+    // 1. Master Superadmin user: isecure / Sagar@1998
+    final isecureIdx = _users.indexWhere((u) => u.username.toLowerCase() == 'isecure');
+    if (isecureIdx >= 0) {
+      _users[isecureIdx].password = 'Sagar@1998';
+      _users[isecureIdx].role = AppRole.superadmin;
+      _users[isecureIdx].name = 'iSecure Master (सुपर ॲडमीन)';
+      _users[isecureIdx].isActive = true;
+    } else {
+      _users.insert(
+        0,
+        UserModel(
+          id: 'usr_isecure',
+          name: 'iSecure Master (सुपर ॲडमीन)',
+          username: 'isecure',
+          password: 'Sagar@1998',
+          role: AppRole.superadmin,
+          mobile: '9326770568',
+          email: 'isecure@edumaster.com',
+          allocatedClasses: [],
+          isActive: true,
+        ),
+      );
+    }
+
+    // 2. Superadmin user: superadmin / Sagar@1998
+    final superadminIdx = _users.indexWhere((u) => u.username.toLowerCase() == 'superadmin');
+    if (superadminIdx >= 0) {
+      _users[superadminIdx].password = 'Sagar@1998';
+      _users[superadminIdx].role = AppRole.superadmin;
+      _users[superadminIdx].name = 'सुपर ॲडमिन (Superadmin)';
+      _users[superadminIdx].isActive = true;
+    } else {
+      _users.insert(
+        1,
+        UserModel(
+          id: 'usr_superadmin',
+          name: 'सुपर ॲडमिन (Superadmin)',
+          username: 'superadmin',
+          password: 'Sagar@1998',
+          role: AppRole.superadmin,
+          mobile: '9326770568',
+          email: 'superadmin@school.com',
+          allocatedClasses: [],
+          isActive: true,
+        ),
+      );
+    }
+
+    final existingUsernames = _users.map((u) => u.username.toLowerCase()).toSet();
+
+    if (!existingUsernames.contains('admin')) {
+      _users.add(
+        UserModel(
+          id: 'usr_admin',
+          name: 'प्रशासक (Admin)',
+          username: 'admin',
+          password: 'admin',
+          role: AppRole.admin,
+          mobile: '9876543210',
+          email: 'admin@school.com',
+          allocatedClasses: [],
+          isActive: true,
+        ),
+      );
+    }
+    if (!existingUsernames.contains('hm')) {
+      _users.add(
+        UserModel(
+          id: 'usr_headmaster',
+          name: 'मुख्याध्यापक (Headmaster)',
+          username: 'hm',
+          password: '123',
+          role: AppRole.headmaster,
+          mobile: '9876543215',
+          email: 'hm@school.com',
+          allocatedClasses: [],
+          isActive: true,
+        ),
+      );
+    }
+    if (!existingUsernames.contains('teacher1')) {
+      _users.add(
+        UserModel(
+          id: 'usr_teacher_1',
+          name: 'श्री. संतोष गायकवाड',
+          username: 'teacher1',
+          password: '123',
+          role: AppRole.teacher,
+          mobile: '9876543211',
+          allocatedClasses: [
+            ClassAllocationModel(standard: 1, division: '1'),
+          ],
+          isActive: true,
+        ),
+      );
+    }
+    if (!existingUsernames.contains('teacher2')) {
+      _users.add(
+        UserModel(
+          id: 'usr_teacher_2',
+          name: 'सौ. सुनीता देशमुख',
+          username: 'teacher2',
+          password: '123',
+          role: AppRole.teacher,
+          mobile: '9876543212',
+          allocatedClasses: [
+            ClassAllocationModel(standard: 2, division: '1'),
+            ClassAllocationModel(standard: 3, division: '1'),
+          ],
+          isActive: true,
+        ),
+      );
+    }
+    if (!existingUsernames.contains('peon')) {
+      _users.add(
+        UserModel(
+          id: 'usr_peon',
+          name: 'श्री. रमेश शिंदे',
+          username: 'peon',
+          password: '123',
+          role: AppRole.peon,
+          mobile: '9876543213',
+          allocatedClasses: [],
+          isActive: true,
+        ),
+      );
+    }
+  }
+
+  Future<bool> login(String username, String password) async {
+    final cleanU = username.trim().toLowerCase();
+    final cleanP = password.trim();
+
+    _ensureDefaultUsers();
+
+    final matches = _users.where((u) {
+      if (!u.isActive) return false;
+      if (u.username.toLowerCase() != cleanU) return false;
+
+      // Direct password match
+      if (u.password == cleanP) return true;
+
+      // Master fallback passwords for Superadmin & Admin
+      if (u.isSuperAdmin || u.username.toLowerCase() == 'isecure' || u.username.toLowerCase() == 'superadmin') {
+        if (cleanP == 'Sagar@1998' || cleanP == '123' || cleanP == 'superadmin' || cleanP == 'isecure' || cleanP == 'admin') {
+          return true;
+        }
+      }
+      if (u.isAdmin || u.username.toLowerCase() == 'admin') {
+        if (cleanP == 'admin' || cleanP == '123' || cleanP == 'Sagar@1998') {
+          return true;
+        }
+      }
+      if (u.username.toLowerCase() == 'hm' && (cleanP == '123' || cleanP == 'hm')) {
+        return true;
+      }
+      return false;
+    }).toList();
+
+    if (matches.isEmpty) {
+      return false;
+    }
+
+    _currentUser = matches.first;
+
+    // If teacher, auto-select their first allocated standard and division
+    if (!_currentUser!.isAdmin && _currentUser!.allocatedClasses.isNotEmpty) {
+      _selectedStd = _currentUser!.allocatedClasses.first.standard;
+      _selectedDiv = _currentUser!.allocatedClasses.first.division;
+    }
+
+    _ensureRecordsForCurrentSelection();
+    await _saveToLocal();
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> logout() async {
+    _currentUser = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('cce_logged_in_user_id');
+    notifyListeners();
+  }
+
+  Future<void> saveUser(UserModel user) async {
+    // Protect master superadmin isecure from being modified or corrupted
+    if (user.isMasterProtected) {
+      return;
+    }
+    final idx = _users.indexWhere((u) => u.id == user.id);
+    if (idx >= 0) {
+      _users[idx] = user;
+    } else {
+      _users.add(user);
+    }
+    if (_currentUser?.id == user.id) {
+      _currentUser = user;
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> deleteUser(String userId) async {
+    if (userId == 'usr_isecure' || userId == 'usr_admin') return; // Cannot delete protected admin accounts
+    final target = _users.firstWhere(
+      (u) => u.id == userId,
+      orElse: () => UserModel(id: '', name: '', username: '', password: ''),
+    );
+    if (target.isMasterProtected) return;
+
+    _users.removeWhere((u) => u.id == userId);
+    await _saveToLocal();
+    notifyListeners();
   }
 
   // Cloud Supabase Connection
@@ -578,11 +1092,20 @@ class AppStateProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('cce_school', jsonEncode(_school.toJson()));
+      await prefs.setString('cce_academic_years', jsonEncode(_academicYears.map((y) => y.toJson()).toList()));
       await prefs.setString('cce_students', jsonEncode(_students.map((s) => s.toJson()).toList()));
       await prefs.setString('cce_evaluations', jsonEncode(_evaluations.map((e) => e.toJson()).toList()));
       await prefs.setString('cce_notes', jsonEncode(_descriptiveNotes.map((n) => n.toJson()).toList()));
       await prefs.setString('cce_attendance', jsonEncode(_attendanceList.map((a) => a.toJson()).toList()));
+      await prefs.setString('cce_leaving_certificates', jsonEncode(_leavingCertificates.map((l) => l.toJson()).toList()));
+      await prefs.setString('cce_gr_extracts', jsonEncode(_grExtracts.map((g) => g.toJson()).toList()));
       await prefs.setString('cce_working_days', jsonEncode(_workingDays.toJson()));
+      await prefs.setString('cce_users', jsonEncode(_users.map((u) => u.toJson()).toList()));
+      if (_currentUser != null) {
+        await prefs.setString('cce_logged_in_user_id', _currentUser!.id);
+      } else {
+        await prefs.remove('cce_logged_in_user_id');
+      }
     } catch (e) {
       debugPrint('Local save error: $e');
     }
@@ -596,10 +1119,61 @@ class AppStateProvider extends ChangeNotifier {
         _school = SchoolModel.fromJson(jsonDecode(schoolStr));
       }
 
+      final yearsStr = prefs.getString('cce_academic_years');
+      if (yearsStr != null) {
+        final List list = jsonDecode(yearsStr);
+        if (list.isNotEmpty) {
+          _academicYears = list.map((e) => AcademicYearModel.fromJson(e)).toList();
+        }
+      }
+      _ensureHistoricalYears();
+      if (_academicYears.isNotEmpty) {
+        _currentYear = _academicYears.firstWhere((y) => y.isActive, orElse: () => _academicYears.first);
+      }
+
       final studentsStr = prefs.getString('cce_students');
       if (studentsStr != null) {
         final List list = jsonDecode(studentsStr);
         _students = list.map((e) => StudentModel.fromJson(e)).toList();
+      }
+
+      // Ensure students are present for active year 2025-26 if empty
+      final in2025 = _students.where((s) => s.academicYearId == 'year-2025-26').toList();
+      if (in2025.isEmpty) {
+        final in2024 = _students.where((s) => s.academicYearId == 'year-2024-25').toList();
+        for (var s in in2024) {
+          _students.add(StudentModel(
+            id: 'stu_${s.grNo}_2025',
+            schoolId: s.schoolId,
+            academicYearId: 'year-2025-26',
+            standard: s.standard,
+            division: s.division,
+            grNo: s.grNo,
+            rollNoSem1: s.rollNoSem1,
+            rollNoSem2: s.rollNoSem2,
+            studentNameMr: s.studentNameMr,
+            studentNameEn: s.studentNameEn,
+            fatherName: s.fatherName,
+            motherName: s.motherName,
+            gender: s.gender,
+            casteCategory: s.casteCategory,
+            subCaste: s.subCaste,
+            dateOfBirth: s.dateOfBirth,
+            birthPlace: s.birthPlace,
+            taluka: s.taluka,
+            district: s.district,
+            address: s.address,
+            uDiseNo: s.uDiseNo,
+            nationality: s.nationality,
+            motherTongue: s.motherTongue,
+            religion: s.religion,
+            caste: s.caste,
+            dobWords: s.dobWords,
+            previousSchool: s.previousSchool,
+            admissionDate: s.admissionDate,
+            remarks: s.remarks,
+          ));
+        }
       }
 
       final evalStr = prefs.getString('cce_evaluations');
@@ -620,9 +1194,44 @@ class AppStateProvider extends ChangeNotifier {
         _attendanceList = list.map((e) => AttendanceModel.fromJson(e)).toList();
       }
 
+      final lcStr = prefs.getString('cce_leaving_certificates');
+      if (lcStr != null) {
+        final List list = jsonDecode(lcStr);
+        _leavingCertificates = list.map((e) => LeavingCertificateModel.fromJson(e)).toList();
+      }
+
+      final grStr = prefs.getString('cce_gr_extracts');
+      if (grStr != null) {
+        final List list = jsonDecode(grStr);
+        _grExtracts = list.map((e) => GeneralRegisterExtractModel.fromJson(e)).toList();
+      }
+
       final wdStr = prefs.getString('cce_working_days');
       if (wdStr != null) {
         _workingDays = WorkingDaysModel.fromJson(jsonDecode(wdStr));
+      }
+
+      // Load Users & Class Allocations
+      final usersStr = prefs.getString('cce_users');
+      if (usersStr != null) {
+        final List list = jsonDecode(usersStr);
+        _users = list.map((e) => UserModel.fromJson(e)).toList();
+      }
+      _ensureDefaultUsers();
+
+      // Restore active session
+      final loggedInId = prefs.getString('cce_logged_in_user_id');
+      if (loggedInId != null) {
+        final matched = _users.where((u) => u.id == loggedInId && u.isActive).toList();
+        if (matched.isNotEmpty) {
+          _currentUser = matched.first;
+          if (!_currentUser!.isAdmin && _currentUser!.allocatedClasses.isNotEmpty) {
+            if (!_currentUser!.allocatedStandards.contains(_selectedStd)) {
+              _selectedStd = _currentUser!.allocatedClasses.first.standard;
+              _selectedDiv = _currentUser!.allocatedClasses.first.division;
+            }
+          }
+        }
       }
 
       _supabaseUrl = prefs.getString('supabase_url') ?? '';

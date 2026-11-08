@@ -27,18 +27,6 @@ class SampleData {
 
   static List<AcademicYearModel> get defaultYears => [
     AcademicYearModel(
-      id: 'year-2024-25',
-      schoolId: 'school-01',
-      yearName: '2024-25',
-      startDate: DateTime(2024, 6, 15),
-      endDate: DateTime(2025, 5, 1),
-      sem1ResultDate: DateTime(2024, 10, 25),
-      sem2ResultDate: DateTime(2025, 4, 30),
-      reopeningDate: DateTime(2025, 6, 16),
-      reopeningMessage: 'उन्हाळी सुट्टीनंतर शाळा दिनांक १६ जून २०२५ रोजी सुरू होईल.',
-      isActive: true,
-    ),
-    AcademicYearModel(
       id: 'year-2025-26',
       schoolId: 'school-01',
       yearName: '2025-26',
@@ -48,6 +36,18 @@ class SampleData {
       sem2ResultDate: DateTime(2026, 4, 30),
       reopeningDate: DateTime(2026, 6, 15),
       reopeningMessage: 'उन्हाळी सुट्टीनंतर शाळा दिनांक १५ जून २०२६ रोजी सुरू होईल.',
+      isActive: true,
+    ),
+    AcademicYearModel(
+      id: 'year-2024-25',
+      schoolId: 'school-01',
+      yearName: '2024-25',
+      startDate: DateTime(2024, 6, 15),
+      endDate: DateTime(2025, 5, 1),
+      sem1ResultDate: DateTime(2024, 10, 25),
+      sem2ResultDate: DateTime(2025, 4, 30),
+      reopeningDate: DateTime(2025, 6, 16),
+      reopeningMessage: 'उन्हाळी सुट्टीनंतर शाळा दिनांक १६ जून २०२५ रोजी सुरू होईल.',
       isActive: false,
     ),
   ];
