@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/school_model.dart';
@@ -12,6 +13,9 @@ import '../data/models/working_days_model.dart';
 import '../data/models/leaving_certificate_model.dart';
 import '../data/models/general_register_extract_model.dart';
 import '../data/models/user_model.dart';
+import '../data/models/homework_model.dart';
+import '../data/models/online_exam_model.dart';
+import '../data/local/curriculum_repository.dart';
 import '../data/local/sample_data.dart';
 import '../data/supabase/supabase_service.dart';
 import '../core/services/app_update_service.dart';
@@ -41,6 +45,11 @@ class AppStateProvider extends ChangeNotifier {
   // User Authentication & Class Teacher Allocation
   List<UserModel> _users = [];
   UserModel? _currentUser;
+
+  // Homework, Online Exams & Results (Student/Parent Portal)
+  List<HomeworkModel> _homeworkList = [];
+  List<OnlineExamModel> _onlineExams = [];
+  List<ExamResultModel> _examResults = [];
 
   String _supabaseUrl = '';
   String _supabaseAnonKey = '';
@@ -79,6 +88,70 @@ class AppStateProvider extends ChangeNotifier {
   UserModel? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null;
   List<UserModel> get users => _users;
+
+  // Student & Parent Portal Getters
+  List<HomeworkModel> get homeworkList => _homeworkList;
+  List<OnlineExamModel> get onlineExams => _onlineExams;
+  List<ExamResultModel> get examResults => _examResults;
+
+  List<HomeworkModel> getHomeworkForStudent(StudentModel student) {
+    return _homeworkList
+        .where((h) => h.standard == student.standard && (h.division == student.division || h.division.isEmpty))
+        .toList()
+      ..sort((a, b) => b.assignedDate.compareTo(a.assignedDate));
+  }
+
+  List<OnlineExamModel> getExamsForStandard(int standard) {
+    return _onlineExams.where((e) => e.standard == standard).toList();
+  }
+
+  List<ExamResultModel> getStudentExamResults(String studentId) {
+    return _examResults.where((r) => r.studentId == studentId).toList()
+      ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+  }
+
+  Map<String, dynamic> getStudentAttendanceSummary(StudentModel student) {
+    final att = _attendanceList.firstWhere(
+      (a) => a.studentId == student.id,
+      orElse: () => AttendanceModel(
+        id: 'att_${student.id}',
+        schoolId: _school.id,
+        academicYearId: _currentYear.id,
+        studentId: student.id,
+        standard: student.standard,
+        division: student.division,
+      ),
+    );
+
+    final totalWorkingDays = _workingDays.grandTotal > 0 ? _workingDays.grandTotal : 230;
+    final totalAttendedDays = att.grandTotal;
+    final percentage = totalWorkingDays > 0 ? (totalAttendedDays / totalWorkingDays) * 100 : 0.0;
+
+    final monthlyBreakdown = [
+      {'month': 'जून', 'present': att.jun, 'total': _workingDays.jun},
+      {'month': 'जुलै', 'present': att.jul, 'total': _workingDays.jul},
+      {'month': 'ऑगस्ट', 'present': att.aug, 'total': _workingDays.aug},
+      {'month': 'सप्टेंबर', 'present': att.sep, 'total': _workingDays.sep},
+      {'month': 'ऑक्टोबर', 'present': att.oct, 'total': _workingDays.oct},
+      {'month': 'नोव्हेंबर', 'present': att.nov, 'total': _workingDays.nov},
+      {'month': 'डिसेंबर', 'present': att.dec, 'total': _workingDays.dec},
+      {'month': 'जानेवारी', 'present': att.jan, 'total': _workingDays.jan},
+      {'month': 'फेब्रुवारी', 'present': att.feb, 'total': _workingDays.feb},
+      {'month': 'मार्च', 'present': att.mar, 'total': _workingDays.mar},
+      {'month': 'एप्रिल', 'present': att.apr, 'total': _workingDays.apr},
+    ];
+
+    return {
+      'totalWorkingDays': totalWorkingDays,
+      'totalAttendedDays': totalAttendedDays,
+      'percentage': percentage,
+      'monthlyBreakdown': monthlyBreakdown,
+      'sem1Present': att.sem1Total,
+      'sem1Total': _workingDays.sem1Total,
+      'sem2Present': att.sem2Total,
+      'sem2Total': _workingDays.sem2Total,
+    };
+  }
 
   // Available Standards restricted by currently logged in user/teacher
   List<int> get availableStandards {
@@ -136,6 +209,8 @@ class AppStateProvider extends ChangeNotifier {
     );
     _gradingScales = SampleData.defaultGrades;
     _remarksBank = SampleData.remarksBank;
+    _homeworkList = CurriculumRepository.getDefaultHomework();
+    _onlineExams = CurriculumRepository.getDefaultOnlineExams();
 
     await _loadFromLocal();
 
@@ -143,9 +218,11 @@ class AppStateProvider extends ChangeNotifier {
     notifyListeners();
 
     // Check online update from GitHub in background
-    Future.delayed(const Duration(seconds: 3), () {
-      checkForUpdate(silent: true);
-    });
+    if (!kIsWeb && !Platform.environment.containsKey('FLUTTER_TEST')) {
+      Future.delayed(const Duration(seconds: 3), () {
+        checkForUpdate(silent: true);
+      });
+    }
   }
 
   // Online GitHub Auto-Update Check
@@ -1074,6 +1151,82 @@ class AppStateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Homework, Exam & Portal Management
+  Future<void> addHomework(HomeworkModel hw) async {
+    final idx = _homeworkList.indexWhere((h) => h.id == hw.id);
+    if (idx >= 0) {
+      _homeworkList[idx] = hw;
+    } else {
+      _homeworkList.insert(0, hw);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> deleteHomework(String id) async {
+    _homeworkList.removeWhere((h) => h.id == id);
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> toggleHomeworkStatus(String homeworkId, String studentId) async {
+    final idx = _homeworkList.indexWhere((h) => h.id == homeworkId);
+    if (idx >= 0) {
+      final hw = _homeworkList[idx];
+      final completed = List<String>.from(hw.completedStudentIds);
+      if (completed.contains(studentId)) {
+        completed.remove(studentId);
+      } else {
+        completed.add(studentId);
+      }
+      _homeworkList[idx] = HomeworkModel(
+        id: hw.id,
+        schoolId: hw.schoolId,
+        academicYearId: hw.academicYearId,
+        standard: hw.standard,
+        division: hw.division,
+        subjectCode: hw.subjectCode,
+        subjectName: hw.subjectName,
+        title: hw.title,
+        description: hw.description,
+        assignedDate: hw.assignedDate,
+        dueDate: hw.dueDate,
+        teacherName: hw.teacherName,
+        completedStudentIds: completed,
+      );
+      await _saveToLocal();
+      notifyListeners();
+    }
+  }
+
+  Future<void> addOnlineExam(OnlineExamModel exam) async {
+    final idx = _onlineExams.indexWhere((e) => e.id == exam.id);
+    if (idx >= 0) {
+      _onlineExams[idx] = exam;
+    } else {
+      _onlineExams.insert(0, exam);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> deleteOnlineExam(String id) async {
+    _onlineExams.removeWhere((e) => e.id == id);
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> submitExamResult(ExamResultModel result) async {
+    final idx = _examResults.indexWhere((r) => r.id == result.id || (r.examId == result.examId && r.studentId == result.studentId));
+    if (idx >= 0) {
+      _examResults[idx] = result;
+    } else {
+      _examResults.insert(0, result);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
   // Cloud Supabase Connection
   Future<bool> connectSupabase(String url, String anonKey) async {
     _supabaseUrl = url;
@@ -1101,6 +1254,9 @@ class AppStateProvider extends ChangeNotifier {
       await prefs.setString('cce_gr_extracts', jsonEncode(_grExtracts.map((g) => g.toJson()).toList()));
       await prefs.setString('cce_working_days', jsonEncode(_workingDays.toJson()));
       await prefs.setString('cce_users', jsonEncode(_users.map((u) => u.toJson()).toList()));
+      await prefs.setString('cce_homework', jsonEncode(_homeworkList.map((h) => h.toJson()).toList()));
+      await prefs.setString('cce_online_exams', jsonEncode(_onlineExams.map((e) => e.toJson()).toList()));
+      await prefs.setString('cce_exam_results', jsonEncode(_examResults.map((r) => r.toJson()).toList()));
       if (_currentUser != null) {
         await prefs.setString('cce_logged_in_user_id', _currentUser!.id);
       } else {
@@ -1209,6 +1365,31 @@ class AppStateProvider extends ChangeNotifier {
       final wdStr = prefs.getString('cce_working_days');
       if (wdStr != null) {
         _workingDays = WorkingDaysModel.fromJson(jsonDecode(wdStr));
+      }
+
+      // Load Homework
+      final hwStr = prefs.getString('cce_homework');
+      if (hwStr != null) {
+        final List list = jsonDecode(hwStr);
+        _homeworkList = list.map((e) => HomeworkModel.fromJson(e)).toList();
+      } else {
+        _homeworkList = CurriculumRepository.getDefaultHomework();
+      }
+
+      // Load Online Exams
+      final examsStr = prefs.getString('cce_online_exams');
+      if (examsStr != null) {
+        final List list = jsonDecode(examsStr);
+        _onlineExams = list.map((e) => OnlineExamModel.fromJson(e)).toList();
+      } else {
+        _onlineExams = CurriculumRepository.getDefaultOnlineExams();
+      }
+
+      // Load Exam Results
+      final resultsStr = prefs.getString('cce_exam_results');
+      if (resultsStr != null) {
+        final List list = jsonDecode(resultsStr);
+        _examResults = list.map((e) => ExamResultModel.fromJson(e)).toList();
       }
 
       // Load Users & Class Allocations

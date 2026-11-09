@@ -20,6 +20,7 @@ import 'screens/reports/statistics_screen.dart';
 import 'screens/students/student_promotion_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/users/teacher_allocation_screen.dart';
+import 'screens/portal/student_parent_portal_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -132,6 +133,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
         break;
       case 14:
         currentScreen = const TeacherAllocationScreen();
+        break;
+      case 15:
+        currentScreen = const StudentParentPortalScreen();
         break;
       default:
         currentScreen = DashboardScreen(onNavigate: _navigateTo);

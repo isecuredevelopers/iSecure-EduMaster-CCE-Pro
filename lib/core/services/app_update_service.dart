@@ -86,6 +86,9 @@ class AppUpdateService {
 
   /// Check online GitHub repository for new release
   static Future<AppUpdateInfo?> checkForUpdate() async {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return null;
+    }
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 10);
 

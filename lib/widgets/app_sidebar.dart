@@ -261,6 +261,7 @@ class AppSidebar extends StatelessWidget {
                   _buildNavItem(13, Icons.upgrade_outlined, Icons.upgrade, 'वर्गोन्नती (Promotion)'),
                 if (state.currentUser?.isAdmin ?? true)
                   _buildNavItem(14, Icons.assignment_ind_outlined, Icons.assignment_ind, 'शिक्षक वाटप (Teacher Allocation)'),
+                _buildNavItem(15, Icons.phone_android_outlined, Icons.phone_android, 'विद्यार्थी-पालक ॲप (Portal 📱)'),
               ],
             ),
           ),

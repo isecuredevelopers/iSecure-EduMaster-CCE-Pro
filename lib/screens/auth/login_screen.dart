@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/user_model.dart';
 import '../../providers/app_state_provider.dart';
+import '../portal/student_parent_portal_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -770,6 +771,45 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Divider with "किंवा"
+          Row(
+            children: [
+              const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text('किंवा', style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600)),
+              ),
+              const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Direct Student & Parent Portal Access Button
+          SizedBox(
+            width: double.infinity,
+            height: 38,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF1E88E5),
+                side: const BorderSide(color: Color(0xFF1E88E5), width: 1.2),
+                backgroundColor: const Color(0xFFF0F9FF),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const StudentParentPortalScreen()),
+                );
+              },
+              icon: const Icon(Icons.school, size: 17, color: Color(0xFF1E88E5)),
+              label: const Text(
+                'विद्यार्थी व पालक पोर्टल (Student & Parent App) 📱',
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
           const SizedBox(height: 10),
