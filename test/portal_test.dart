@@ -9,6 +9,7 @@ import 'package:myschool/data/models/online_exam_model.dart';
 import 'package:myschool/screens/portal/student_parent_portal_screen.dart';
 import 'package:myschool/screens/portal/chapter_detail_screen.dart';
 import 'package:myschool/screens/portal/exam_player_screen.dart';
+import 'package:myschool/screens/portal_admin/homework_exam_management_screen.dart';
 
 void main() {
   setUp(() {
@@ -243,6 +244,126 @@ void main() {
 
       // Cleanly dispose widget so timer is cancelled
       await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('HomeworkExamManagementScreen renders Windows admin tabs and controls', (tester) async {
+      tester.binding.window.physicalSizeTestValue = const Size(1280, 800);
+      tester.binding.window.devicePixelRatioTestValue = 1.0;
+      addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
+
+      final provider = AppStateProvider();
+
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: provider,
+          child: const MaterialApp(
+            home: HomeworkExamManagementScreen(),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.textContaining('स्वाध्याय व ऑनलाइन परीक्षा व्यवस्थापन'), findsOneWidget);
+      expect(find.textContaining('घरचा अभ्यास (Homework)'), findsOneWidget);
+      expect(find.textContaining('ऑनलाइन परीक्षा व निकाल (Exams)'), findsOneWidget);
+      expect(find.textContaining('+ नवीन स्वाध्याय द्या'), findsOneWidget);
+
+      // Switch to Exams tab
+      await tester.tap(find.textContaining('ऑनलाइन परीक्षा व निकाल (Exams)'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.textContaining('+ नवीन ऑनलाइन परीक्षा तयार करा'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    test('Windows created homework & exam reflect in Android/iOS student portal and back', () async {
+      final provider = AppStateProvider();
+      await Future.delayed(const Duration(milliseconds: 100));
+      final student = provider.students.first;
+
+      // 1. Teacher assigns new homework in Windows panel
+      final newHw = HomeworkModel(
+        id: 'hw_win_test_99',
+        schoolId: provider.school.id,
+        academicYearId: provider.currentYear.id,
+        standard: student.standard,
+        division: student.division,
+        subjectCode: 'marathi_1',
+        subjectName: 'मराठी',
+        title: 'झोका कविता शुद्धलेखन व प्रश्नोत्तरे',
+        description: 'वहीत सुंदर हस्ताक्षरात लिहा व पाठांतर करा.',
+        assignedDate: DateTime.now(),
+        dueDate: DateTime.now().add(const Duration(days: 2)),
+        teacherName: 'श्री. विजय कदम (वर्गशिक्षक)',
+      );
+      await provider.addHomework(newHw);
+
+      // Student views homework in mobile portal
+      final studentHomeworkList = provider.getHomeworkForStudent(student);
+      final reflectedHw = studentHomeworkList.where((h) => h.id == 'hw_win_test_99');
+      expect(reflectedHw.isNotEmpty, isTrue, reason: 'Homework must reflect in student mobile portal');
+
+      // 2. Student completes homework in mobile portal
+      await provider.toggleHomeworkStatus('hw_win_test_99', student.id);
+      final updatedHw = provider.homeworkList.firstWhere((h) => h.id == 'hw_win_test_99');
+      expect(updatedHw.isCompletedBy(student.id), isTrue, reason: 'Teacher Windows panel must reflect completed status');
+
+      // 3. Teacher creates a new online exam in Windows panel
+      final newExam = OnlineExamModel(
+        id: 'exam_win_test_99',
+        standard: student.standard,
+        subjectCode: 'maths_1',
+        subjectName: 'गणित',
+        title: 'अंकज्ञान चाचणी',
+        description: 'सराव चाचणी',
+        durationMinutes: 10,
+        questions: [
+          ExamQuestionModel(
+            id: 'q1',
+            question: '५ + ४ किती?',
+            options: ['९', '८', '१०', '७'],
+            correctOptionIndex: 0,
+            explanation: '५ + ४ = ९.',
+          ),
+        ],
+      );
+      await provider.addOnlineExam(newExam);
+
+      // Mobile portal queries exams for this standard
+      final stdExams = provider.getExamsForStandard(student.standard);
+      expect(stdExams.any((e) => e.id == 'exam_win_test_99'), isTrue, reason: 'Exam must reflect in student mobile portal');
+
+      // 4. Student takes exam on mobile portal and submits
+      final examResult = ExamResultModel(
+        id: 'res_win_test_99',
+        examId: 'exam_win_test_99',
+        examTitle: 'अंकज्ञान चाचणी',
+        studentId: student.id,
+        studentName: student.studentNameMr.isNotEmpty ? student.studentNameMr : student.studentNameEn,
+        standard: student.standard,
+        division: student.division,
+        score: 1,
+        totalMarks: 1,
+        percentage: 100.0,
+        grade: 'A1',
+        isPassed: true,
+        submittedAt: DateTime.now(),
+        userAnswers: {0: 0},
+      );
+      await provider.submitExamResult(examResult);
+
+      // Windows panel queries results for this exam
+      final examResultsOnWindows = provider.getResultsForExam('exam_win_test_99');
+      expect(examResultsOnWindows.isNotEmpty, isTrue, reason: 'Scorecard must reflect back to Windows teacher software');
+      expect(examResultsOnWindows.first.studentId, equals(student.id));
+      expect(examResultsOnWindows.first.grade, equals('A1'));
+      expect(examResultsOnWindows.first.isPassed, isTrue);
+
+      // Cleanup
+      await provider.deleteHomework('hw_win_test_99');
+      await provider.deleteOnlineExam('exam_win_test_99');
+      await provider.deleteExamResult('res_win_test_99');
     });
   });
 }

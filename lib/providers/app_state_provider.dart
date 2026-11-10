@@ -110,6 +110,11 @@ class AppStateProvider extends ChangeNotifier {
       ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
   }
 
+  List<ExamResultModel> getResultsForExam(String examId) {
+    return _examResults.where((r) => r.examId == examId).toList()
+      ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+  }
+
   Map<String, dynamic> getStudentAttendanceSummary(StudentModel student) {
     final att = _attendanceList.firstWhere(
       (a) => a.studentId == student.id,
@@ -1223,6 +1228,12 @@ class AppStateProvider extends ChangeNotifier {
     } else {
       _examResults.insert(0, result);
     }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> deleteExamResult(String resultId) async {
+    _examResults.removeWhere((r) => r.id == resultId);
     await _saveToLocal();
     notifyListeners();
   }

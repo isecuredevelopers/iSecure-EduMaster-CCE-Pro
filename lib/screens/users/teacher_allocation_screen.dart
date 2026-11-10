@@ -123,9 +123,12 @@ class _TeacherAllocationScreenState extends State<TeacherAllocationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 12,
+                      runSpacing: 6,
+                      children: const [
                         Text(
                           'नोंदणीकृत शिक्षक व वाटप केलेले वर्ग',
                           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
@@ -155,222 +158,267 @@ class _TeacherAllocationScreenState extends State<TeacherAllocationScreen> {
                           final user = filteredUsers[idx];
                           final isCurrent = currentUser?.id == user.id;
 
+                          final avatar = CircleAvatar(
+                            radius: 20,
+                            backgroundColor: user.isAdmin ? const Color(0xFFEFF6FF) : const Color(0xFFF0FDF4),
+                            child: Icon(
+                              user.isAdmin ? Icons.admin_panel_settings : Icons.person,
+                              color: user.isAdmin ? const Color(0xFF2563EB) : const Color(0xFF16A34A),
+                              size: 22,
+                            ),
+                          );
+
+                          final nameAndBadges = Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              Text(
+                                user.name,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                              ),
+                              if (user.isMasterProtected)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF2F2),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.shield, size: 10, color: Color(0xFFDC2626)),
+                                      SizedBox(width: 3),
+                                      Text(
+                                        'मास्टर संरक्षित',
+                                        style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else if (isCurrent)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text('सध्या लॉगिन', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF166534))),
+                                ),
+                            ],
+                          );
+
+                          final credentials = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'युझरनेम: ${user.username} • पासवर्ड: ${user.password}',
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                              ),
+                              if (user.mobile.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text('मोबाईल: ${user.mobile}', style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                              ],
+                            ],
+                          );
+
+                          final roleBadge = Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: user.isTeacher
+                                  ? const Color(0xFFECFDF5)
+                                  : (user.isHeadmaster
+                                      ? const Color(0xFFEFF6FF)
+                                      : (user.isPeon
+                                          ? const Color(0xFFFEF3C7)
+                                          : (user.isSuperAdmin
+                                              ? const Color(0xFFFEF2F2)
+                                              : const Color(0xFFF5F3FF)))),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: user.isTeacher
+                                    ? const Color(0xFFA7F3D0)
+                                    : (user.isHeadmaster
+                                        ? const Color(0xFFBFDBFE)
+                                        : (user.isPeon
+                                            ? const Color(0xFFFDE68A)
+                                            : (user.isSuperAdmin
+                                                ? const Color(0xFFFECACA)
+                                                : const Color(0xFFDDD6FE)))),
+                              ),
+                            ),
+                            child: Text(
+                              user.roleTextMr,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: user.isTeacher
+                                    ? const Color(0xFF059669)
+                                    : (user.isHeadmaster
+                                        ? const Color(0xFF2563EB)
+                                        : (user.isPeon
+                                            ? const Color(0xFFD97706)
+                                            : (user.isSuperAdmin
+                                                ? const Color(0xFFDC2626)
+                                                : const Color(0xFF7C3AED)))),
+                              ),
+                            ),
+                          );
+
+                          final allocatedClassesWidget = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'वाटप केलेले वर्ग (Allocated Classes):',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                              ),
+                              const SizedBox(height: 6),
+                              if (user.isAdmin)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEFF6FF),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'सर्व वर्ग व तुकड्या (इ. १ ली ते ८ वी सर्व)',
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                  ),
+                                )
+                              else if (user.allocatedClasses.isEmpty)
+                                const Text(
+                                  'कोणताही वर्ग वाटप नाही (कृपया वाटप करा)',
+                                  style: TextStyle(fontSize: 11, color: Color(0xFFDC2626), fontWeight: FontWeight.w500),
+                                )
+                              else
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: user.allocatedClasses.map((alloc) {
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEEF2FF),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: const Color(0xFFC7D2FE)),
+                                      ),
+                                      child: Text(
+                                        '${MarathiDateFormatter.classToMarathi(alloc.standard)} (तुकडी ${alloc.division})',
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF3730A3)),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                            ],
+                          );
+
+                          final actionButtons = user.isMasterProtected
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.lock_outline, size: 14, color: Color(0xFF64748B)),
+                                      SizedBox(width: 5),
+                                      Text(
+                                        'संरक्षित (अपरिवर्तनीय)',
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF0D6EFD)),
+                                      tooltip: 'वर्ग वाटप व माहिती संपादन (Edit)',
+                                      onPressed: () => _openTeacherDialog(context, state, user),
+                                    ),
+                                    if (user.id != 'usr_admin')
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFDC2626)),
+                                        tooltip: 'शिक्षक हटवा (Delete)',
+                                        onPressed: () => _confirmDeleteUser(context, state, user),
+                                      ),
+                                  ],
+                                );
+
                           return Container(
                             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Avatar
-                                CircleAvatar(
-                                  radius: 22,
-                                  backgroundColor: user.isAdmin ? const Color(0xFFEFF6FF) : const Color(0xFFF0FDF4),
-                                  child: Icon(
-                                    user.isAdmin ? Icons.admin_panel_settings : Icons.person,
-                                    color: user.isAdmin ? const Color(0xFF2563EB) : const Color(0xFF16A34A),
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-
-                                // User Info
-                                Expanded(
-                                  flex: 3,
-                                  child: Column(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final isNarrow = constraints.maxWidth < 680;
+                                if (isNarrow) {
+                                  return Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Flexible(
-                                            child: Text(
-                                              user.name,
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
-                                              overflow: TextOverflow.ellipsis,
+                                          avatar,
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                nameAndBadges,
+                                                const SizedBox(height: 3),
+                                                credentials,
+                                              ],
                                             ),
                                           ),
-                                          if (user.isMasterProtected) ...[
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFFEF2F2),
-                                                borderRadius: BorderRadius.circular(4),
-                                                border: Border.all(color: const Color(0xFFFCA5A5)),
-                                              ),
-                                              child: const Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(Icons.shield, size: 10, color: Color(0xFFDC2626)),
-                                                  SizedBox(width: 3),
-                                                  Text(
-                                                    'मास्टर संरक्षित',
-                                                    style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                          if (isCurrent) ...[
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFDCFCE7),
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: const Text('सध्या लॉगिन', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF166534))),
-                                            ),
-                                          ],
+                                          actionButtons,
                                         ],
                                       ),
-                                      const SizedBox(height: 3),
-                                      Text(
-                                        'युझरनेम: ${user.username} • पासवर्ड: ${user.password}',
-                                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                      const SizedBox(height: 10),
+                                      Wrap(
+                                        spacing: 10,
+                                        runSpacing: 8,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          roleBadge,
+                                          allocatedClassesWidget,
+                                        ],
                                       ),
-                                      if (user.mobile.isNotEmpty) ...[
-                                        const SizedBox(height: 2),
-                                        Text('मोबाईल: ${user.mobile}', style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
-                                      ],
                                     ],
-                                  ),
-                                ),
+                                  );
+                                }
 
-                                // Role Badge
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: user.isTeacher
-                                        ? const Color(0xFFECFDF5)
-                                        : (user.isHeadmaster
-                                            ? const Color(0xFFEFF6FF)
-                                            : (user.isPeon
-                                                ? const Color(0xFFFEF3C7)
-                                                : (user.isSuperAdmin
-                                                    ? const Color(0xFFFEF2F2)
-                                                    : const Color(0xFFF5F3FF)))),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                      color: user.isTeacher
-                                          ? const Color(0xFFA7F3D0)
-                                          : (user.isHeadmaster
-                                              ? const Color(0xFFBFDBFE)
-                                              : (user.isPeon
-                                                  ? const Color(0xFFFDE68A)
-                                                  : (user.isSuperAdmin
-                                                      ? const Color(0xFFFECACA)
-                                                      : const Color(0xFFDDD6FE)))),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    user.roleTextMr,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: user.isTeacher
-                                          ? const Color(0xFF059669)
-                                          : (user.isHeadmaster
-                                              ? const Color(0xFF2563EB)
-                                              : (user.isPeon
-                                                  ? const Color(0xFFD97706)
-                                                  : (user.isSuperAdmin
-                                                      ? const Color(0xFFDC2626)
-                                                      : const Color(0xFF7C3AED)))),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-
-                                // Allocated Classes Badges
-                                Expanded(
-                                  flex: 4,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'वाटप केलेले वर्ग (Allocated Classes):',
-                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    avatar,
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          nameAndBadges,
+                                          const SizedBox(height: 3),
+                                          credentials,
+                                        ],
                                       ),
-                                      const SizedBox(height: 6),
-                                      if (user.isAdmin)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFEFF6FF),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: const Text(
-                                            'सर्व वर्ग व तुकड्या (इ. १ ली ते ८ वी सर्व)',
-                                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
-                                          ),
-                                        )
-                                      else if (user.allocatedClasses.isEmpty)
-                                        const Text(
-                                          'कोणताही वर्ग वाटप नाही (कृपया वाटप करा)',
-                                          style: TextStyle(fontSize: 11, color: Color(0xFFDC2626), fontWeight: FontWeight.w500),
-                                        )
-                                      else
-                                        Wrap(
-                                          spacing: 6,
-                                          runSpacing: 4,
-                                          children: user.allocatedClasses.map((alloc) {
-                                            return Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFEEF2FF),
-                                                borderRadius: BorderRadius.circular(4),
-                                                border: Border.all(color: const Color(0xFFC7D2FE)),
-                                              ),
-                                              child: Text(
-                                                '${MarathiDateFormatter.classToMarathi(alloc.standard)} (तुकडी ${alloc.division})',
-                                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF3730A3)),
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-
-                                // Action Buttons
-                                if (user.isMasterProtected)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF1F5F9),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: const Color(0xFFE2E8F0)),
                                     ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.lock_outline, size: 14, color: Color(0xFF64748B)),
-                                        SizedBox(width: 5),
-                                        Text(
-                                          'संरक्षित (अपरिवर्तनीय)',
-                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
-                                        ),
-                                      ],
+                                    const SizedBox(width: 8),
+                                    roleBadge,
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      flex: 4,
+                                      child: allocatedClassesWidget,
                                     ),
-                                  )
-                                else
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF0D6EFD)),
-                                        tooltip: 'वर्ग वाटप व माहिती संपादन (Edit)',
-                                        onPressed: () => _openTeacherDialog(context, state, user),
-                                      ),
-                                      if (user.id != 'usr_admin')
-                                        IconButton(
-                                          icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFDC2626)),
-                                          tooltip: 'शिक्षक हटवा (Delete)',
-                                          onPressed: () => _confirmDeleteUser(context, state, user),
-                                        ),
-                                    ],
-                                  ),
-                              ],
+                                    const SizedBox(width: 12),
+                                    actionButtons,
+                                  ],
+                                );
+                              },
                             ),
                           );
                         },
@@ -514,6 +562,7 @@ class _TeacherAllocationScreenState extends State<TeacherAllocationScreen> {
         builder: (context, setDialogState) {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             title: Row(
               children: [
                 Icon(
@@ -521,16 +570,19 @@ class _TeacherAllocationScreenState extends State<TeacherAllocationScreen> {
                   color: const Color(0xFF0D6EFD),
                 ),
                 const SizedBox(width: 10),
-                Text(
-                  isEditing ? 'शिक्षक माहिती व वर्ग वाटप संपादन' : 'नवीन शिक्षक नोंदणी व वर्ग वाटप',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    isEditing ? 'शिक्षक माहिती व वर्ग वाटप संपादन' : 'नवीन शिक्षक नोंदणी व वर्ग वाटप',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
             content: Container(
               width: 680,
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.75,
+                maxHeight: MediaQuery.of(context).size.height * 0.70,
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -540,81 +592,121 @@ class _TeacherAllocationScreenState extends State<TeacherAllocationScreen> {
                     // Teacher Basic Details
                     const Text('१. शिक्षकाचे प्राथमिक तपशील:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: TextField(
-                            controller: nameCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'शिक्षकाचे पूर्ण नाव (उदा. श्री. संतोष गायकवाड)',
-                              isDense: true,
-                              border: OutlineInputBorder(),
-                            ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isNarrow = constraints.maxWidth < 480;
+                        final nameField = TextField(
+                          controller: nameCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'शिक्षकाचे पूर्ण नाव (उदा. श्री. संतोष गायकवाड)',
+                            isDense: true,
+                            border: OutlineInputBorder(),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: DropdownButtonFormField<String>(
-                            value: ['teacher', 'headmaster', 'peon', 'admin', 'superadmin'].contains(role) ? role : 'teacher',
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'पद / भूमिका (Role)',
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                              border: OutlineInputBorder(),
-                            ),
-                            items: const [
-                              DropdownMenuItem(value: 'teacher', child: Text('वर्गशिक्षक (Vargshikshak)', overflow: TextOverflow.ellipsis)),
-                              DropdownMenuItem(value: 'headmaster', child: Text('मुख्याध्यापक (Mukhyadhyapak)', overflow: TextOverflow.ellipsis)),
-                              DropdownMenuItem(value: 'peon', child: Text('शिपाई (Shipai)', overflow: TextOverflow.ellipsis)),
-                              DropdownMenuItem(value: 'admin', child: Text('Admin (प्रशासक)', overflow: TextOverflow.ellipsis)),
-                              DropdownMenuItem(value: 'superadmin', child: Text('Superadmin (सुपर ॲडमीन)', overflow: TextOverflow.ellipsis)),
+                        );
+                        final roleField = DropdownButtonFormField<String>(
+                          value: ['teacher', 'headmaster', 'peon', 'admin', 'superadmin'].contains(role) ? role : 'teacher',
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'पद / भूमिका (Role)',
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            border: OutlineInputBorder(),
+                          ),
+                          selectedItemBuilder: (BuildContext context) {
+                            return const [
+                              Align(alignment: Alignment.centerLeft, child: Text('वर्गशिक्षक (Teacher)', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                              Align(alignment: Alignment.centerLeft, child: Text('मुख्याध्यापक (Headmaster)', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                              Align(alignment: Alignment.centerLeft, child: Text('शिपाई (Shipai)', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                              Align(alignment: Alignment.centerLeft, child: Text('Admin (प्रशासक)', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                              Align(alignment: Alignment.centerLeft, child: Text('Superadmin (सुपर ॲडमीन)', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                            ];
+                          },
+                          items: const [
+                            DropdownMenuItem(value: 'teacher', child: Text('वर्गशिक्षक (Vargshikshak)', overflow: TextOverflow.ellipsis)),
+                            DropdownMenuItem(value: 'headmaster', child: Text('मुख्याध्यापक (Mukhyadhyapak)', overflow: TextOverflow.ellipsis)),
+                            DropdownMenuItem(value: 'peon', child: Text('शिपाई (Shipai)', overflow: TextOverflow.ellipsis)),
+                            DropdownMenuItem(value: 'admin', child: Text('Admin (प्रशासक)', overflow: TextOverflow.ellipsis)),
+                            DropdownMenuItem(value: 'superadmin', child: Text('Superadmin (सुपर ॲडमीन)', overflow: TextOverflow.ellipsis)),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setDialogState(() => role = val);
+                          },
+                        );
+
+                        if (isNarrow) {
+                          return Column(
+                            children: [
+                              nameField,
+                              const SizedBox(height: 12),
+                              roleField,
                             ],
-                            onChanged: (val) {
-                              if (val != null) setDialogState(() => role = val);
-                            },
-                          ),
-                        ),
-                      ],
+                          );
+                        }
+
+                        return Row(
+                          children: [
+                            Expanded(flex: 1, child: nameField),
+                            const SizedBox(width: 12),
+                            Expanded(flex: 1, child: roleField),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: usernameCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'लॉगिन युझरनेम (उदा. teacher1)',
-                              isDense: true,
-                              border: OutlineInputBorder(),
-                            ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isNarrow = constraints.maxWidth < 540;
+                        final usernameField = TextField(
+                          controller: usernameCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'लॉगिन युझरनेम (उदा. teacher1)',
+                            isDense: true,
+                            border: OutlineInputBorder(),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: passwordCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'लॉगिन पासवर्ड',
-                              isDense: true,
-                              border: OutlineInputBorder(),
-                            ),
+                        );
+                        final passwordField = TextField(
+                          controller: passwordCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'लॉगिन पासवर्ड',
+                            isDense: true,
+                            border: OutlineInputBorder(),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: mobileCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'मोबाईल क्रमांक',
-                              isDense: true,
-                              border: OutlineInputBorder(),
-                            ),
+                        );
+                        final mobileField = TextField(
+                          controller: mobileCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'मोबाईल क्रमांक',
+                            isDense: true,
+                            border: OutlineInputBorder(),
                           ),
-                        ),
-                      ],
+                        );
+
+                        if (isNarrow) {
+                          return Column(
+                            children: [
+                              usernameField,
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(child: passwordField),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: mobileField),
+                                ],
+                              ),
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          children: [
+                            Expanded(child: usernameField),
+                            const SizedBox(width: 12),
+                            Expanded(child: passwordField),
+                            const SizedBox(width: 12),
+                            Expanded(child: mobileField),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
 

@@ -149,6 +149,8 @@ void main() {
     // Tap first edit button to open Teacher Edit Dialog
     final editButtons = find.byIcon(Icons.edit_outlined);
     expect(editButtons, findsWidgets);
+    await tester.ensureVisible(editButtons.first);
+    await tester.pumpAndSettle();
     await tester.tap(editButtons.first);
     await tester.pumpAndSettle();
 
@@ -206,6 +208,39 @@ void main() {
     expect(find.text('Admin (प्रशासक)'), findsOneWidget);
     expect(find.text('Superadmin (सुपर ॲडमीन)'), findsOneWidget);
 
+    await tester.pump(const Duration(seconds: 4));
+  });
+
+  testWidgets('TeacherAllocationScreen dialog renders cleanly with zero overflow on narrow screen', (tester) async {
+    tester.binding.window.physicalSizeTestValue = const Size(700, 550);
+    tester.binding.window.devicePixelRatioTestValue = 1.0;
+    addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
+
+    final provider = AppStateProvider();
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: const MaterialApp(
+          home: TeacherAllocationScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap first edit button to open Teacher Edit Dialog
+    final editButtons = find.byIcon(Icons.edit_outlined);
+    expect(editButtons, findsWidgets);
+    await tester.ensureVisible(editButtons.first);
+    await tester.pumpAndSettle();
+    await tester.tap(editButtons.first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('शिक्षक माहिती व वर्ग वाटप संपादन'), findsOneWidget);
+    expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+
+    // Close dialog cleanly
+    await tester.tap(find.text('रद्द करा'));
+    await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 4));
   });
 }
