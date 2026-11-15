@@ -1139,6 +1139,23 @@ class AppStateProvider extends ChangeNotifier {
         ),
       );
     }
+    if (!existingUsernames.contains('student')) {
+      _users.add(
+        UserModel(
+          id: 'usr_student_1',
+          name: 'आरव राहुल पाटील (विद्यार्थी/पालक)',
+          username: 'student',
+          password: '123',
+          role: AppRole.student,
+          mobile: '9876543219',
+          email: 'student@myschool.com',
+          allocatedClasses: [
+            ClassAllocationModel(standard: 1, division: '1'),
+          ],
+          isActive: true,
+        ),
+      );
+    }
   }
 
   Future<bool> login(String username, String password) async {
@@ -1149,7 +1166,10 @@ class AppStateProvider extends ChangeNotifier {
 
     final matches = _users.where((u) {
       if (!u.isActive) return false;
-      if (u.username.toLowerCase() != cleanU) return false;
+      final matchUsername = u.username.toLowerCase() == cleanU ||
+          (cleanU == 'student1' && u.username.toLowerCase() == 'student') ||
+          (cleanU == 'palak' && u.username.toLowerCase() == 'student');
+      if (!matchUsername) return false;
 
       // Direct password match
       if (u.password == cleanP) return true;
@@ -1167,6 +1187,11 @@ class AppStateProvider extends ChangeNotifier {
       }
       if (u.username.toLowerCase() == 'hm' && (cleanP == '123' || cleanP == 'hm')) {
         return true;
+      }
+      if (u.isStudent || u.username.toLowerCase() == 'student') {
+        if (cleanP == '123' || cleanP == 'student' || cleanP == '1234') {
+          return true;
+        }
       }
       return false;
     }).toList();

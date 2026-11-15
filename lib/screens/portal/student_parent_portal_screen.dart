@@ -165,6 +165,34 @@ class _StudentParentPortalScreenState extends State<StudentParentPortalScreen> {
               icon: const Icon(Icons.swap_horiz, size: 18),
               label: const Text('विद्यार्थी बदला', style: TextStyle(fontSize: 12)),
             ),
+          if (provider.isLoggedIn && (provider.currentUser?.isStudent ?? false))
+            IconButton(
+              icon: const Icon(Icons.logout, size: 20),
+              tooltip: 'लॉगआउट (Sign Out)',
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('लॉगआउट करा'),
+                    content: const Text('तुम्हाला विद्यार्थी खात्यातून बाहेर पडायचे आहे का?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('रद्द करा')),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFDC2626),
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('लॉगआउट'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true && mounted) {
+                  await provider.logout();
+                }
+              },
+            ),
           const SizedBox(width: 8),
         ],
       ),

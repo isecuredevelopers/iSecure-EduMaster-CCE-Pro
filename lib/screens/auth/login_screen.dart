@@ -26,6 +26,14 @@ class _LoginScreenState extends State<LoginScreen> {
   // 5 roles in user-specified order
   static const List<Map<String, dynamic>> roleOptions = [
     {
+      'role': AppRole.student,
+      'title': 'Student / Palak (विद्यार्थी व पालक)',
+      'sub': 'हजेरी, स्वाध्याय, ऑनलाइन परीक्षा व ई-लर्निंग अभ्यासक्रम',
+      'icon': Icons.school_outlined,
+      'color': Color(0xFF0284C7),
+      'bg': Color(0xFFF0F9FF),
+    },
+    {
       'role': AppRole.teacher,
       'title': 'Vargshikshak (वर्गशिक्षक)',
       'sub': 'वाटप केलेल्या वर्गाची उपस्थिती, आकारिक व संकलित नोंदी',
@@ -119,6 +127,13 @@ class _LoginScreenState extends State<LoginScreen> {
         if (_selectedRole != AppRole.teacher) {
           setState(() {
             _selectedRole = AppRole.teacher;
+          });
+          return;
+        }
+      } else if (u == 'student' || u == 'palak' || u.startsWith('student')) {
+        if (_selectedRole != AppRole.student) {
+          setState(() {
+            _selectedRole = AppRole.student;
           });
           return;
         }
@@ -655,7 +670,7 @@ class _LoginScreenState extends State<LoginScreen> {
             controller: _usernameCtrl,
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
             decoration: InputDecoration(
-              hintText: 'उदा. isecure, superadmin, admin, teacher1',
+              hintText: 'उदा. isecure, superadmin, admin, teacher1, student',
               hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.normal),
               prefixIcon: const Icon(Icons.person_outline, size: 18, color: Color(0xFF2563EB)),
               filled: true,

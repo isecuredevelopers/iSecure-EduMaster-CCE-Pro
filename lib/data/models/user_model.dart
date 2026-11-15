@@ -36,6 +36,7 @@ class AppRole {
   static const String peon = 'peon';               // Shipai
   static const String admin = 'admin';             // Admin
   static const String superadmin = 'superadmin';   // Superadmin
+  static const String student = 'student';         // Student / Palak
 
   static const List<Map<String, String>> list = [
     {
@@ -68,6 +69,12 @@ class AppRole {
       'nameEn': 'Superadmin',
       'sub': 'सर्वोच्च अधिकार व सेटिंग्ज',
     },
+    {
+      'role': student,
+      'nameMr': 'विद्यार्थी / पालक',
+      'nameEn': 'Student / Parent',
+      'sub': 'हजेरी, गृहपाठ, परीक्षा व अभ्यासक्रम',
+    },
   ];
 
   static String getLabel(String r) {
@@ -82,6 +89,8 @@ class AppRole {
         return 'Admin';
       case superadmin:
         return 'Superadmin';
+      case student:
+        return 'विद्यार्थी / पालक (Student / Parent)';
       default:
         return r;
     }
@@ -117,6 +126,7 @@ class UserModel {
   bool get isHeadmaster => role == AppRole.headmaster;
   bool get isTeacher => role == AppRole.teacher;
   bool get isPeon => role == AppRole.peon;
+  bool get isStudent => role == AppRole.student;
 
   String get roleTextMr => AppRole.getLabel(role);
 
@@ -150,6 +160,7 @@ class UserModel {
     if (role == AppRole.admin) return 'प्रशासक (पूर्ण अधिकार)';
     if (isHeadmaster) return 'मुख्याध्यापक (शाळा प्रमुख)';
     if (isPeon) return 'शिपाई (कार्यालयीन सहाय्य)';
+    if (isStudent) return 'विद्यार्थी व पालक (Student Zone)';
     if (allocatedClasses.isEmpty) return 'कोणताही वर्ग वाटप नाही';
     final map = <int, List<String>>{};
     for (var a in allocatedClasses) {

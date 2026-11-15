@@ -99,90 +99,108 @@ class _MainShellScreenState extends State<MainShellScreen> {
     }
 
     Widget currentScreen;
-    switch (_currentIndex) {
-      case 0:
-        currentScreen = DashboardScreen(onNavigate: _navigateTo);
-        break;
-      case 1:
-        currentScreen = const SchoolSettingsScreen();
-        break;
-      case 2:
-        currentScreen = const StudentsListScreen();
-        break;
-      case 3:
-        currentScreen = const MarksEntryScreen();
-        break;
-      case 4:
-        currentScreen = const DescriptiveNotesScreen();
-        break;
-      case 5:
-        currentScreen = const AttendanceScreen();
-        break;
-      case 6:
-        currentScreen = const ProgressCardScreen();
-        break;
-      case 7:
-        currentScreen = const ResultGazetteScreen();
-        break;
-      case 8:
-        currentScreen = const BonafideCertificateScreen();
-        break;
-      case 9:
-        currentScreen = const LeavingCertificateScreen();
-        break;
-      case 10:
-        currentScreen = const GeneralRegisterExtractScreen();
-        break;
-      case 11:
-        currentScreen = const YearlyClassStudentsScreen();
-        break;
-      case 12:
-        currentScreen = const StatisticsScreen();
-        break;
-      case 13:
-        currentScreen = const StudentPromotionScreen();
-        break;
-      case 14:
-        currentScreen = const TeacherAllocationScreen();
-        break;
-      case 15:
-        currentScreen = const StudentParentPortalScreen();
-        break;
-      case 16:
-        currentScreen = const HomeworkExamManagementScreen();
-        break;
-      case 17:
-        currentScreen = const MdmManagementScreen();
-        break;
-      case 18:
-        currentScreen = const FreeEntitlementsScreen();
-        break;
-      case 19:
-        currentScreen = const MonthlyAttendanceAbstractScreen();
-        break;
-      case 20:
-        currentScreen = const SmcManagementScreen();
-        break;
-      case 21:
-        currentScreen = const DeadStockScreen();
-        break;
-      case 22:
-        currentScreen = const LibraryScreen();
-        break;
-      case 23:
-        currentScreen = const TeacherServiceScreen();
-        break;
-      case 24:
-        currentScreen = const InwardOutwardHealthScreen();
-        break;
-      case 25:
-        currentScreen = const StudentIdCardsScreen();
-        break;
-      case 26:
-        currentScreen = const SaralUdiseSyncScreen();
-        break;
-      default:
-        currentScreen = DashboardScreen(onNavigate: _navigateTo);
+    if (state.currentUser?.isStudent ?? false) {
+      switch (_currentIndex) {
+        case 5:
+          currentScreen = const AttendanceScreen();
+          break;
+        case 6:
+          currentScreen = const ProgressCardScreen();
+          break;
+        case 25:
+          currentScreen = const StudentIdCardsScreen();
+          break;
+        case 15:
+        case 0:
+        default:
+          currentScreen = const StudentParentPortalScreen();
+      }
+    } else {
+      switch (_currentIndex) {
+        case 0:
+          currentScreen = DashboardScreen(onNavigate: _navigateTo);
+          break;
+        case 1:
+          currentScreen = const SchoolSettingsScreen();
+          break;
+        case 2:
+          currentScreen = const StudentsListScreen();
+          break;
+        case 3:
+          currentScreen = const MarksEntryScreen();
+          break;
+        case 4:
+          currentScreen = const DescriptiveNotesScreen();
+          break;
+        case 5:
+          currentScreen = const AttendanceScreen();
+          break;
+        case 6:
+          currentScreen = const ProgressCardScreen();
+          break;
+        case 7:
+          currentScreen = const ResultGazetteScreen();
+          break;
+        case 8:
+          currentScreen = const BonafideCertificateScreen();
+          break;
+        case 9:
+          currentScreen = const LeavingCertificateScreen();
+          break;
+        case 10:
+          currentScreen = const GeneralRegisterExtractScreen();
+          break;
+        case 11:
+          currentScreen = const YearlyClassStudentsScreen();
+          break;
+        case 12:
+          currentScreen = const StatisticsScreen();
+          break;
+        case 13:
+          currentScreen = const StudentPromotionScreen();
+          break;
+        case 14:
+          currentScreen = const TeacherAllocationScreen();
+          break;
+        case 15:
+          currentScreen = const StudentParentPortalScreen();
+          break;
+        case 16:
+          currentScreen = const HomeworkExamManagementScreen();
+          break;
+        case 17:
+          currentScreen = const MdmManagementScreen();
+          break;
+        case 18:
+          currentScreen = const FreeEntitlementsScreen();
+          break;
+        case 19:
+          currentScreen = const MonthlyAttendanceAbstractScreen();
+          break;
+        case 20:
+          currentScreen = const SmcManagementScreen();
+          break;
+        case 21:
+          currentScreen = const DeadStockScreen();
+          break;
+        case 22:
+          currentScreen = const LibraryScreen();
+          break;
+        case 23:
+          currentScreen = const TeacherServiceScreen();
+          break;
+        case 24:
+          currentScreen = const InwardOutwardHealthScreen();
+          break;
+        case 25:
+          currentScreen = const StudentIdCardsScreen();
+          break;
+        case 26:
+          currentScreen = const SaralUdiseSyncScreen();
+          break;
+        default:
+          currentScreen = DashboardScreen(onNavigate: _navigateTo);
+      }
     }
 
     final isMobile = MediaQuery.of(context).size.width < 900;
