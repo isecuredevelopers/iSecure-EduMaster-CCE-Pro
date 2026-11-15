@@ -104,3 +104,4 @@ class MovementRegisterRecord {
         approvedBy: json['approvedBy'] ?? 'मुख्याध्यापक',
       );
 }
+

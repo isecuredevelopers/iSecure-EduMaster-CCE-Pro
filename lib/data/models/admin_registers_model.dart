@@ -167,3 +167,4 @@ class StudentHealthRecord {
         examiningDoctor: json['examiningDoctor'] ?? 'वैद्यकीय पथक (RBSK)',
       );
 }
+

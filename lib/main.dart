@@ -185,6 +185,42 @@ class _MainShellScreenState extends State<MainShellScreen> {
         currentScreen = DashboardScreen(onNavigate: _navigateTo);
     }
 
+    final isMobile = MediaQuery.of(context).size.width < 900;
+
+    if (isMobile) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppColors.sidebarBg,
+          foregroundColor: Colors.white,
+          title: Text(
+            _currentIndex == 15
+                ? 'विद्यार्थी व पालक पोर्टल 📱'
+                : 'iSecure EduMaster CCE Pro',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.school, color: AppColors.accent),
+              tooltip: 'विद्यार्थी व पालक पोर्टल (Student & Parent)',
+              onPressed: () => _navigateTo(15),
+            ),
+          ],
+        ),
+        drawer: Drawer(
+          child: Builder(
+            builder: (drawerCtx) => AppSidebar(
+              selectedIndex: _currentIndex,
+              onDestinationSelected: (idx) {
+                Navigator.of(drawerCtx).pop();
+                _navigateTo(idx);
+              },
+            ),
+          ),
+        ),
+        body: currentScreen,
+      );
+    }
+
     return Scaffold(
       body: Row(
         children: [

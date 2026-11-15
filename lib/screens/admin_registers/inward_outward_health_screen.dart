@@ -526,3 +526,4 @@ class _InwardOutwardHealthScreenState extends State<InwardOutwardHealthScreen>
     );
   }
 }
+

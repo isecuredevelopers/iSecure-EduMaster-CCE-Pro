@@ -143,3 +143,4 @@ class SmcResolutionItem {
         approvalStatus: json['approvalStatus'] ?? 'सर्वानुमते मंजूर',
       );
 }
+

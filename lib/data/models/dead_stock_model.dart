@@ -66,3 +66,4 @@ class DeadStockItemModel {
         remark: json['remark'] ?? '',
       );
 }
+

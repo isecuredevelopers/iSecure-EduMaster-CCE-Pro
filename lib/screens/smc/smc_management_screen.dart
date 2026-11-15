@@ -575,3 +575,4 @@ class _SmcManagementScreenState extends State<SmcManagementScreen>
     );
   }
 }
+

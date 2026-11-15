@@ -63,3 +63,4 @@ class LibraryBookModel {
             : null,
       );
 }
+

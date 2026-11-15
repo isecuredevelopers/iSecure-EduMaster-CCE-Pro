@@ -134,3 +134,4 @@ class UniformDistributionRecord {
         remark: json['remark'] ?? '',
       );
 }
+

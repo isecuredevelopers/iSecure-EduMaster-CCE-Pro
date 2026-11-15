@@ -198,3 +198,4 @@ class MdmMonthlyBillModel {
             json['generatedDate'] ?? DateTime.now().toIso8601String()),
       );
 }
+
