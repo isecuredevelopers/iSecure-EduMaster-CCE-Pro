@@ -307,6 +307,106 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 30),
+
+            // ==========================================
+            // ZP Statutory Registers Section
+            // ==========================================
+            const Row(
+              children: [
+                Icon(Icons.account_balance, color: AppColors.primary, size: 24),
+                SizedBox(width: 8),
+                Text(
+                  'जिल्हा परिषद शाळा वैधानिक नोंदवह्या (ZP Statutory Registers)',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            GridView.count(
+              crossAxisCount: 4,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: 1.8,
+              children: [
+                _buildActionCard(
+                  title: 'शालेय पोषण आहार (MDM)',
+                  desc: 'दैनिक हजेरी, धान्य साठा व मासिक बिल',
+                  icon: Icons.restaurant_menu,
+                  color: const Color(0xFFD97706),
+                  onTap: () => onNavigate(17),
+                ),
+                _buildActionCard(
+                  title: 'मोफत पाठ्यपुस्तके व गणवेश',
+                  desc: 'समग्र शिक्षा वाटप व पावती रजिस्टर',
+                  icon: Icons.auto_stories,
+                  color: const Color(0xFF0284C7),
+                  onTap: () => onNavigate(18),
+                ),
+                _buildActionCard(
+                  title: 'मासिक उपस्थिती गोषवारा',
+                  desc: 'Form A/B जातनिहाय मुले-मुली हजेरी',
+                  icon: Icons.assessment,
+                  color: const Color(0xFF2563EB),
+                  onTap: () => onNavigate(19),
+                ),
+                _buildActionCard(
+                  title: 'शाळा व्यवस्थापन समिती (SMC)',
+                  desc: 'कार्यकारिणी व मासिक सभा ठराव वही',
+                  icon: Icons.groups,
+                  color: const Color(0xFF7C3AED),
+                  onTap: () => onNavigate(20),
+                ),
+                _buildActionCard(
+                  title: 'मृतसाठा नोंदवही (Dead Stock)',
+                  desc: 'नमुना १ ते ५ फर्निचर, डिजिटल साहित्य',
+                  icon: Icons.inventory,
+                  color: const Color(0xFF78350F),
+                  onTap: () => onNavigate(21),
+                ),
+                _buildActionCard(
+                  title: 'ग्रंथालय नोंदवही (Library)',
+                  desc: 'ॲक्सेशन वही व पुस्तक देवाणघेवाण',
+                  icon: Icons.local_library,
+                  color: const Color(0xFF0D9488),
+                  onTap: () => onNavigate(22),
+                ),
+                _buildActionCard(
+                  title: 'शिक्षक रजा व हालचाल वही',
+                  desc: 'किरकोळ रजा (CL) खातावणी व Movement',
+                  icon: Icons.event_note,
+                  color: const Color(0xFF4F46E5),
+                  onTap: () => onNavigate(23),
+                ),
+                _buildActionCard(
+                  title: 'आवक-जावक व आरोग्य (RBSK)',
+                  desc: 'शासकीय पत्रव्यवहार व आरोग्य तपासणी',
+                  icon: Icons.folder_shared,
+                  color: const Color(0xFFE11D48),
+                  onTap: () => onNavigate(24),
+                ),
+                _buildActionCard(
+                  title: 'डिजिटल ओळखपत्रे (ID Cards)',
+                  desc: 'प्रिंट-रेडी विद्यार्थी रंगीत आयकार्ड्स',
+                  icon: Icons.badge,
+                  color: const Color(0xFF0891B2),
+                  onTap: () => onNavigate(25),
+                ),
+                _buildActionCard(
+                  title: 'सरळ (SARAL) व U-DISE+ सिंक',
+                  desc: 'एक्सेल बल्क इंपोर्ट/एक्सपोर्ट व DCF',
+                  icon: Icons.cloud_sync,
+                  color: const Color(0xFF16A34A),
+                  onTap: () => onNavigate(26),
+                ),
+              ],
+            ),
           ],
         ),
       ),

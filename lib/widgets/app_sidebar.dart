@@ -246,6 +246,8 @@ class AppSidebar extends StatelessWidget {
                 _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'डॅशबोर्ड (Dashboard)'),
                 if (state.currentUser?.isAdmin ?? true)
                   _buildNavItem(1, Icons.tune_outlined, Icons.tune, 'सॉफ्टवेअर सेटिंग्ज (School Settings)'),
+
+                _buildSectionHeader('शैक्षणिक व निकाल कामकाज (CCE Pro)'),
                 _buildNavItem(2, Icons.people_outline, Icons.people, 'विद्यार्थी यादी (Students)'),
                 _buildNavItem(3, Icons.calculate_outlined, Icons.calculate, 'आकारिक-संकलित गुणनोंद (Marks)'),
                 _buildNavItem(4, Icons.edit_note_outlined, Icons.edit_note, 'वर्णनात्मक नोंदी (Remarks)'),
@@ -263,6 +265,18 @@ class AppSidebar extends StatelessWidget {
                   _buildNavItem(14, Icons.assignment_ind_outlined, Icons.assignment_ind, 'शिक्षक वाटप (Teacher Allocation)'),
                 _buildNavItem(15, Icons.phone_android_outlined, Icons.phone_android, 'विद्यार्थी-पालक ॲप (Portal 📱)'),
                 _buildNavItem(16, Icons.assignment_outlined, Icons.assignment, 'स्वाध्याय व परीक्षा (HW & Exams)'),
+
+                _buildSectionHeader('🏛️ जि.प. शाळा वैधानिक नोंदवह्या (ZP Statutory Registers)'),
+                _buildNavItem(17, Icons.restaurant_menu_outlined, Icons.restaurant_menu, 'शालेय पोषण आहार (PM POSHAN 🍲)'),
+                _buildNavItem(18, Icons.auto_stories_outlined, Icons.auto_stories, 'मोफत पाठ्यपुस्तके व गणवेश (समग्र शिक्षा 📚)'),
+                _buildNavItem(19, Icons.assessment_outlined, Icons.assessment, 'मासिक उपस्थिती गोषवारा (Form A/B 📊)'),
+                _buildNavItem(20, Icons.groups_outlined, Icons.groups, 'शाळा व्यवस्थापन समिती (SMC ठराव वही 👥)'),
+                _buildNavItem(21, Icons.inventory_outlined, Icons.inventory, 'शालेय मृतसाठा नोंदवही (Dead Stock 🪑)'),
+                _buildNavItem(22, Icons.local_library_outlined, Icons.local_library, 'ग्रंथालय नोंदवही (Library Register 📖)'),
+                _buildNavItem(23, Icons.event_note_outlined, Icons.event_note, 'शिक्षक रजा व हालचाल वही (Service 📝)'),
+                _buildNavItem(24, Icons.folder_shared_outlined, Icons.folder_shared, 'आवक-जावक व आरोग्य (RBSK 🏥)'),
+                _buildNavItem(25, Icons.badge_outlined, Icons.badge, 'डिजिटल ओळखपत्रे (ID Cards 🪪)'),
+                _buildNavItem(26, Icons.cloud_sync_outlined, Icons.cloud_sync, 'सरळ व U-DISE+ सिंक (SARAL Sync 🔄)'),
               ],
             ),
           ),
@@ -504,6 +518,21 @@ class AppSidebar extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: Color(0xFF94A3B8),
+          fontSize: 10.5,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
         ),
       ),
     );

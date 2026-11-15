@@ -6,6 +6,13 @@ import '../models/evaluation_model.dart';
 import '../models/descriptive_note_model.dart';
 import '../models/attendance_model.dart';
 import '../models/working_days_model.dart';
+import '../models/mdm_model.dart';
+import '../models/free_entitlements_model.dart';
+import '../models/smc_model.dart';
+import '../models/dead_stock_model.dart';
+import '../models/library_model.dart';
+import '../models/teacher_service_model.dart';
+import '../models/admin_registers_model.dart';
 
 class SampleData {
   static SchoolModel get defaultSchool => SchoolModel(
@@ -572,6 +579,438 @@ class SampleData {
       division: '1',
       jun: 11, jul: 23, aug: 23, sep: 21, oct: 17,
       nov: 18, dec: 23, jan: 23, feb: 21, mar: 23, apr: 19,
+    ),
+  ];
+
+  static List<MdmDailyAttendanceModel> get defaultMdmAttendance => [
+    MdmDailyAttendanceModel(
+      id: 'mdm-att-01',
+      date: DateTime.now(),
+      primaryBeneficiaries: 45,
+      upperPrimaryBeneficiaries: 38,
+      menuName: 'मूग डाळ खिचडी व सोयाबीन उसळ',
+      riceUsedKg: 10.2,
+      pulsesUsedKg: 2.05,
+      oilUsedKg: 0.65,
+      tastedBy: 'श्री. एस. आर. पाटील (मुख्याध्यापक)',
+      tasteQuality: 'उत्कृष्ट व पौष्टिक',
+      remark: 'सर्व मुलांनी आनंदाने पोषण आहार घेतला.',
+    ),
+    MdmDailyAttendanceModel(
+      id: 'mdm-att-02',
+      date: DateTime.now().subtract(const Duration(days: 1)),
+      primaryBeneficiaries: 46,
+      upperPrimaryBeneficiaries: 37,
+      menuName: 'मटकी उसळ व भात',
+      riceUsedKg: 10.15,
+      pulsesUsedKg: 2.1,
+      oilUsedKg: 0.65,
+      tastedBy: 'सौ. पी. के. गायकवाड (माता समिती सदस्य)',
+      tasteQuality: 'उत्तम',
+      remark: 'वेळेवर आहार वाटप पूर्ण झाले.',
+    ),
+  ];
+
+  static List<MdmStockItemModel> get defaultMdmStock => [
+    MdmStockItemModel(
+      id: 'stk-1',
+      itemName: 'तांदूळ (शासकीय पुरवठा)',
+      unit: 'किलो',
+      openingStock: 120.0,
+      receivedStock: 250.0,
+      consumedStock: 85.5,
+      batchOrChallanNo: 'CH-2025/892',
+    ),
+    MdmStockItemModel(
+      id: 'stk-2',
+      itemName: 'मूग डाळ',
+      unit: 'किलो',
+      openingStock: 15.0,
+      receivedStock: 40.0,
+      consumedStock: 16.5,
+      batchOrChallanNo: 'CH-2025/892',
+    ),
+    MdmStockItemModel(
+      id: 'stk-3',
+      itemName: 'मटकी / चवळी',
+      unit: 'किलो',
+      openingStock: 18.0,
+      receivedStock: 35.0,
+      consumedStock: 14.0,
+      batchOrChallanNo: 'CH-2025/893',
+    ),
+    MdmStockItemModel(
+      id: 'stk-4',
+      itemName: 'खाद्यतेल (फोर्टिफाइड)',
+      unit: 'लिटर',
+      openingStock: 8.0,
+      receivedStock: 20.0,
+      consumedStock: 6.8,
+      batchOrChallanNo: 'CH-2025/893',
+    ),
+    MdmStockItemModel(
+      id: 'stk-5',
+      itemName: 'आयोडिनयुक्त मीठ व मसाले',
+      unit: 'किलो',
+      openingStock: 5.0,
+      receivedStock: 10.0,
+      consumedStock: 3.2,
+      batchOrChallanNo: 'CH-2025/894',
+    ),
+  ];
+
+  static List<MdmMonthlyBillModel> get defaultMdmBills => [
+    MdmMonthlyBillModel(
+      id: 'mdm-bill-10',
+      month: 10,
+      year: 2025,
+      workingDays: 22,
+      totalPrimaryStudentDays: 1012,
+      totalUpperPrimaryStudentDays: 836,
+      primaryCookingCostRate: 5.45,
+      upperPrimaryCookingCostRate: 8.17,
+      cookHonorarium: 2500.0,
+      cookName: 'सौ. लताबाई शिंदे (स्वयंपाकी)',
+      status: 'मंजूर',
+      generatedDate: DateTime(2025, 10, 31),
+    ),
+    MdmMonthlyBillModel(
+      id: 'mdm-bill-11',
+      month: 11,
+      year: 2025,
+      workingDays: 24,
+      totalPrimaryStudentDays: 1104,
+      totalUpperPrimaryStudentDays: 912,
+      primaryCookingCostRate: 5.45,
+      upperPrimaryCookingCostRate: 8.17,
+      cookHonorarium: 2500.0,
+      cookName: 'सौ. लताबाई शिंदे (स्वयंपाकी)',
+      status: 'सादर केले',
+      generatedDate: DateTime(2025, 11, 30),
+    ),
+  ];
+
+  static List<TextbookDistributionRecord> get defaultTextbookDistributions => [
+    TextbookDistributionRecord(
+      id: 'tb-01',
+      studentId: 'stu-01',
+      studentName: 'आरव सचिन पाटील',
+      standard: 1,
+      division: '1',
+      grNo: '1021',
+      setsReceivedCount: 1,
+      distributionDate: DateTime(2025, 6, 17),
+      isDistributed: true,
+      hasSignature: true,
+      remark: 'सर्व विषयांचे संच मिळाले',
+    ),
+    TextbookDistributionRecord(
+      id: 'tb-02',
+      studentId: 'stu-02',
+      studentName: 'अनन्या राहुल देशमुख',
+      standard: 1,
+      division: '1',
+      grNo: '1022',
+      setsReceivedCount: 1,
+      distributionDate: DateTime(2025, 6, 17),
+      isDistributed: true,
+      hasSignature: true,
+      remark: 'सर्व विषयांचे संच मिळाले',
+    ),
+  ];
+
+  static List<UniformDistributionRecord> get defaultUniformDistributions => [
+    UniformDistributionRecord(
+      id: 'uni-01',
+      studentId: 'stu-01',
+      studentName: 'आरव सचिन पाटील',
+      standard: 1,
+      division: '1',
+      grNo: '1021',
+      gender: 'मुले',
+      category: 'OBC',
+      isEligible: true,
+      set1Given: true,
+      set1Date: DateTime(2025, 7, 5),
+      set2Given: true,
+      set2Date: DateTime(2025, 9, 10),
+      mode: 'थेट गणवेश वाटप',
+      remark: '२ जोडी गणवेश वाटप पूर्ण',
+    ),
+    UniformDistributionRecord(
+      id: 'uni-02',
+      studentId: 'stu-02',
+      studentName: 'अनन्या राहुल देशमुख',
+      standard: 1,
+      division: '1',
+      grNo: '1022',
+      gender: 'मुली',
+      category: 'OPEN',
+      isEligible: true,
+      set1Given: true,
+      set1Date: DateTime(2025, 7, 5),
+      set2Given: true,
+      set2Date: DateTime(2025, 9, 10),
+      mode: 'थेट गणवेश वाटप',
+      remark: '२ जोडी गणवेश वाटप पूर्ण',
+    ),
+  ];
+
+  static List<SmcMemberModel> get defaultSmcMembers => [
+    SmcMemberModel(
+      id: 'smc-1',
+      name: 'श्री. गणेश तुकाराम जगताप',
+      designation: 'अध्यक्ष',
+      gender: 'पुरुष',
+      category: 'OBC',
+      mobileNumber: '9822334455',
+      wardOrAddress: 'वार्ड क्र. २, ग्रामपंचायत शेजारी',
+      isParentMember: true,
+      studentRelation: 'प्रियांका जगताप (इ. ४ थी)',
+      appointedDate: DateTime(2024, 7, 1),
+      expiryDate: DateTime(2027, 6, 30),
+    ),
+    SmcMemberModel(
+      id: 'smc-2',
+      name: 'सौ. सुनीता सुनील गायकवाड',
+      designation: 'उपाध्यक्ष',
+      gender: 'महिला',
+      category: 'SC',
+      mobileNumber: '9822117788',
+      wardOrAddress: 'वार्ड क्र. १, आंबेडकर नगर',
+      isParentMember: true,
+      studentRelation: 'रोहित गायकवाड (इ. २ री)',
+      appointedDate: DateTime(2024, 7, 1),
+      expiryDate: DateTime(2027, 6, 30),
+    ),
+    SmcMemberModel(
+      id: 'smc-3',
+      name: 'श्री. एस. आर. पाटील',
+      designation: 'सदस्य सचिव (मुख्याध्यापक)',
+      gender: 'पुरुष',
+      category: 'OPEN',
+      mobileNumber: '9876543210',
+      wardOrAddress: 'मु. पो. शाळा परिसर',
+      isParentMember: false,
+      studentRelation: 'मुख्याध्यापक',
+      appointedDate: DateTime(2024, 7, 1),
+      expiryDate: DateTime(2027, 6, 30),
+    ),
+    SmcMemberModel(
+      id: 'smc-4',
+      name: 'सौ. मीना विजय शिंदे',
+      designation: 'पालक सदस्य (महिला)',
+      gender: 'महिला',
+      category: 'OPEN',
+      mobileNumber: '9422001122',
+      wardOrAddress: 'वार्ड क्र. ३',
+      isParentMember: true,
+      studentRelation: 'ऋषिकेश शिंदे (इ. ३ री)',
+      appointedDate: DateTime(2024, 7, 1),
+      expiryDate: DateTime(2027, 6, 30),
+    ),
+    SmcMemberModel(
+      id: 'smc-5',
+      name: 'श्री. बाळू किसन पवार',
+      designation: 'स्थानिक स्वराज्य संस्था प्रतिनिधी (ग्रा.पं. सदस्य)',
+      gender: 'पुरुष',
+      category: 'VJNT',
+      mobileNumber: '9158334400',
+      wardOrAddress: 'ग्रामपंचायत सदस्य',
+      isParentMember: false,
+      studentRelation: 'ग्रा.पं. प्रतिनिधी',
+      appointedDate: DateTime(2024, 7, 1),
+      expiryDate: DateTime(2027, 6, 30),
+    ),
+  ];
+
+  static List<SmcMeetingModel> get defaultSmcMeetings => [
+    SmcMeetingModel(
+      id: 'smc-meet-01',
+      meetingNumber: 1,
+      meetingDate: DateTime(2025, 7, 12),
+      subjectOrAgenda: 'नवीन शैक्षणिक वर्ष शाळा विकास आराखडा व शालेय पोषण आहार समिती नियोजन.',
+      totalMembersAttended: 12,
+      presidentName: 'श्री. गणेश तुकाराम जगताप',
+      secretaryName: 'श्री. एस. आर. पाटील',
+      meetingStatus: 'संपन्न',
+      resolutions: [
+        SmcResolutionItem(
+          resolutionNumber: 1,
+          proposer: 'सौ. सुनीता गायकवाड',
+          seconder: 'सौ. मीना शिंदे',
+          resolutionDetails: 'शाळेच्या डिजिटल वर्गखोलीसाठी लोकसहभागातून नवीन स्मार्ट टीव्ही घेण्याचे सर्वानुमते ठरले.',
+          approvalStatus: 'सर्वानुमते मंजूर',
+        ),
+        SmcResolutionItem(
+          resolutionNumber: 2,
+          proposer: 'श्री. बाळू पवार',
+          seconder: 'श्री. गणेश जगताप',
+          resolutionDetails: 'शालेय पोषण आहाराचा दर्जा तपासण्यासाठी माता पालकांची दर आठवड्याची समिती निश्चित करण्यात आली.',
+          approvalStatus: 'सर्वानुमते मंजूर',
+        ),
+      ],
+    ),
+  ];
+
+  static List<DeadStockItemModel> get defaultDeadStock => [
+    DeadStockItemModel(
+      id: 'ds-01',
+      itemNumber: 1,
+      itemName: 'द्वि-आसनी लोखंडी बाकडी (Dual Desks)',
+      category: 'फर्निचर',
+      quantity: 25,
+      purchaseDate: DateTime(2023, 8, 15),
+      voucherOrBillNo: 'V-2023/114',
+      supplierName: 'श्री गणेश स्टील वर्क्स, नाशिक',
+      ratePerItem: 2400.0,
+      totalAmount: 60000.0,
+      fundingSource: 'समग्र शिक्षा अनुदान',
+      itemCondition: 'उत्कृष्ट/चालू',
+      remark: 'वर्ग खोली क्र. १ व २ मध्ये उपलब्ध',
+    ),
+    DeadStockItemModel(
+      id: 'ds-02',
+      itemNumber: 2,
+      itemName: 'गोदरेज लोखंडी कपाट (मोठे)',
+      category: 'फर्निचर',
+      quantity: 3,
+      purchaseDate: DateTime(2022, 11, 20),
+      voucherOrBillNo: 'V-2022/88',
+      supplierName: 'महाराष्ट्र फर्निचर मार्ट',
+      ratePerItem: 12500.0,
+      totalAmount: 37500.0,
+      fundingSource: 'ZP सेस फंड',
+      itemCondition: 'उत्कृष्ट/चालू',
+      remark: 'मुख्याध्यापक कक्ष व कार्यालय',
+    ),
+    DeadStockItemModel(
+      id: 'ds-03',
+      itemNumber: 3,
+      itemName: 'स्मार्ट इंटरॲक्टिव्ह डिजिटल टीव्ही (५५ इंच)',
+      category: 'डिजिटल/आयटी साहित्य',
+      quantity: 2,
+      purchaseDate: DateTime(2024, 1, 10),
+      voucherOrBillNo: 'V-2024/09',
+      supplierName: 'इन्फोटेक सोल्यूशन्स',
+      ratePerItem: 38000.0,
+      totalAmount: 76000.0,
+      fundingSource: 'लोकसहभाग/दानशूर',
+      itemCondition: 'उत्कृष्ट/चालू',
+      remark: 'डिजिटल वर्गखोली १ व २',
+    ),
+  ];
+
+  static List<LibraryBookModel> get defaultLibraryBooks => [
+    LibraryBookModel(
+      id: 'lib-01',
+      accessionNumber: 101,
+      bookTitle: 'श्यामची आई',
+      author: 'साने गुरुजी',
+      publisher: 'पुणे विद्यार्थी गृह प्रकाशन',
+      category: 'बालसाहित्य',
+      price: 120.0,
+      totalPages: 180,
+      isIssued: false,
+    ),
+    LibraryBookModel(
+      id: 'lib-02',
+      accessionNumber: 102,
+      bookTitle: 'अग्निपंख (Wings of Fire - मराठी)',
+      author: 'डॉ. ए. पी. जे. अब्दुल कलाम',
+      publisher: 'राजहंस प्रकाशन',
+      category: 'चरित्र',
+      price: 250.0,
+      totalPages: 220,
+      isIssued: true,
+      currentBorrowerName: 'ऋषिकेश विजय शिंदे (इ. ३ री)',
+      issueDate: DateTime.now().subtract(const Duration(days: 3)),
+      expectedReturnDate: DateTime.now().add(const Duration(days: 4)),
+    ),
+    LibraryBookModel(
+      id: 'lib-03',
+      accessionNumber: 103,
+      bookTitle: 'गोष्टींची पेटी (पंचतंत्र)',
+      author: 'विष्णू शर्मा / संपादन',
+      publisher: 'नॅशनल बुक ट्रस्ट',
+      category: 'कथा/कादंबरी',
+      price: 90.0,
+      totalPages: 110,
+      isIssued: false,
+    ),
+  ];
+
+  static List<TeacherLeaveRecord> get defaultTeacherLeaves => [
+    TeacherLeaveRecord(
+      id: 'tl-01',
+      teacherId: 'usr-02',
+      teacherName: 'पी. के. गायकवाड',
+      leaveType: 'किरकोळ रजा (CL)',
+      fromDate: DateTime(2025, 9, 15),
+      toDate: DateTime(2025, 9, 15),
+      totalDays: 1,
+      reason: 'घरगुती महत्त्वाचे काम',
+      status: 'मंजूर',
+      approvedBy: 'मुख्याध्यापक',
+      appliedDate: DateTime(2025, 9, 14),
+    ),
+  ];
+
+  static List<MovementRegisterRecord> get defaultMovements => [
+    MovementRegisterRecord(
+      id: 'mov-01',
+      teacherName: 'श्री. एस. आर. पाटील',
+      date: DateTime.now().subtract(const Duration(days: 2)),
+      departureTime: '११:३० AM',
+      returnTime: '०३:३० PM',
+      destination: 'गट साधन केंद्र (BRC कार्यालय, पंचायत समिती)',
+      purpose: 'U-DISE+ व शालेय पोषण आहार मासिक ताळेबंद बैठक',
+      approvedBy: 'मुख्याध्यापक',
+    ),
+  ];
+
+  static List<InwardLetterRecord> get defaultInwardLetters => [
+    InwardLetterRecord(
+      id: 'in-01',
+      inwardNumber: 42,
+      receivedDate: DateTime(2025, 11, 2),
+      senderDetails: 'मा. गटशिक्षणाधिकारी कार्यालय, पंचायत समिती',
+      letterNumber: 'जा.क्र./पं.स./शिक्षण/पोषण/२४५/२०२५ दि. ०१/११/२०२५',
+      subject: 'शालेय पोषण आहार प्रधानमंत्री पोषण शक्ती निर्माण योजनेंतर्गत शिल्लक धान्य तपासणी बाबत.',
+      fileReference: 'फाईल क्र. ४ - पोषण आहार',
+      actionTaken: 'साठा नोंदवही अद्ययावत करून अहवाल सादर केला.',
+    ),
+  ];
+
+  static List<OutwardLetterRecord> get defaultOutwardLetters => [
+    OutwardLetterRecord(
+      id: 'out-01',
+      outwardNumber: 68,
+      dispatchDate: DateTime(2025, 11, 5),
+      recipientDetails: 'मा. केंद्रप्रमुख सो., केंद्र प्राथमिक शाळा',
+      subject: 'माहे ऑक्टोबर २०२५ ची मासिक उपस्थिती गोषवारा पत्रक (Form A/B) सादर करणेबाबत.',
+      postalOrDeliveryMode: 'थेट हस्ते',
+      postalCost: 0.0,
+      remark: 'केंद्र कार्यालयात पोच प्रत प्राप्त.',
+    ),
+  ];
+
+  static List<StudentHealthRecord> get defaultHealthRecords => [
+    StudentHealthRecord(
+      id: 'hlth-01',
+      studentId: 'stu-01',
+      studentName: 'आरव सचिन पाटील',
+      standard: 1,
+      division: '1',
+      heightCm: 114.0,
+      weightKg: 19.5,
+      bloodGroup: 'B+',
+      hemoglobin: 12.2,
+      visionTest: 'सामान्य',
+      dentalHealth: 'चांगले',
+      majorIllnessOrAllergy: 'काही नाही',
+      checkupDate: DateTime(2025, 9, 20),
+      examiningDoctor: 'डॉ. एस. एम. बोरसे (RBSK पथक)',
     ),
   ];
 }

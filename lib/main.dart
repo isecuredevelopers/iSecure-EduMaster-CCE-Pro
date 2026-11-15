@@ -22,6 +22,16 @@ import 'screens/auth/login_screen.dart';
 import 'screens/users/teacher_allocation_screen.dart';
 import 'screens/portal/student_parent_portal_screen.dart';
 import 'screens/portal_admin/homework_exam_management_screen.dart';
+import 'screens/mdm/mdm_management_screen.dart';
+import 'screens/entitlements/free_entitlements_screen.dart';
+import 'screens/reports/monthly_attendance_abstract_screen.dart';
+import 'screens/smc/smc_management_screen.dart';
+import 'screens/dead_stock/dead_stock_screen.dart';
+import 'screens/library/library_screen.dart';
+import 'screens/teachers/teacher_service_screen.dart';
+import 'screens/admin_registers/inward_outward_health_screen.dart';
+import 'screens/students/student_id_cards_screen.dart';
+import 'screens/tools/saral_udise_sync_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -140,6 +150,36 @@ class _MainShellScreenState extends State<MainShellScreen> {
         break;
       case 16:
         currentScreen = const HomeworkExamManagementScreen();
+        break;
+      case 17:
+        currentScreen = const MdmManagementScreen();
+        break;
+      case 18:
+        currentScreen = const FreeEntitlementsScreen();
+        break;
+      case 19:
+        currentScreen = const MonthlyAttendanceAbstractScreen();
+        break;
+      case 20:
+        currentScreen = const SmcManagementScreen();
+        break;
+      case 21:
+        currentScreen = const DeadStockScreen();
+        break;
+      case 22:
+        currentScreen = const LibraryScreen();
+        break;
+      case 23:
+        currentScreen = const TeacherServiceScreen();
+        break;
+      case 24:
+        currentScreen = const InwardOutwardHealthScreen();
+        break;
+      case 25:
+        currentScreen = const StudentIdCardsScreen();
+        break;
+      case 26:
+        currentScreen = const SaralUdiseSyncScreen();
         break;
       default:
         currentScreen = DashboardScreen(onNavigate: _navigateTo);

@@ -15,6 +15,13 @@ import '../data/models/general_register_extract_model.dart';
 import '../data/models/user_model.dart';
 import '../data/models/homework_model.dart';
 import '../data/models/online_exam_model.dart';
+import '../data/models/mdm_model.dart';
+import '../data/models/free_entitlements_model.dart';
+import '../data/models/smc_model.dart';
+import '../data/models/dead_stock_model.dart';
+import '../data/models/library_model.dart';
+import '../data/models/teacher_service_model.dart';
+import '../data/models/admin_registers_model.dart';
 import '../data/local/curriculum_repository.dart';
 import '../data/local/sample_data.dart';
 import '../data/supabase/supabase_service.dart';
@@ -50,6 +57,33 @@ class AppStateProvider extends ChangeNotifier {
   List<HomeworkModel> _homeworkList = [];
   List<OnlineExamModel> _onlineExams = [];
   List<ExamResultModel> _examResults = [];
+
+  // जिल्हा परिषद शाळा वैधानिक नोंदवह्या (Statutory ZP Registers)
+  // १. शालेय पोषण आहार (PM POSHAN / MDM)
+  List<MdmDailyAttendanceModel> _mdmAttendanceList = [];
+  List<MdmStockItemModel> _mdmStockList = [];
+  List<MdmMonthlyBillModel> _mdmBillsList = [];
+
+  // २. समग्र शिक्षा मोफत वाटप (Free Entitlements)
+  List<TextbookDistributionRecord> _textbookDistributions = [];
+  List<UniformDistributionRecord> _uniformDistributions = [];
+
+  // ३. शाळा व्यवस्थापन समिती (SMC)
+  List<SmcMemberModel> _smcMembers = [];
+  List<SmcMeetingModel> _smcMeetings = [];
+
+  // ४. मृतसाठा व ग्रंथालय (Dead Stock & Library)
+  List<DeadStockItemModel> _deadStockList = [];
+  List<LibraryBookModel> _libraryBooks = [];
+
+  // ५. शिक्षक सेवा, रजा व हालचाल (Teacher Leaves & Movement)
+  List<TeacherLeaveRecord> _teacherLeaves = [];
+  List<MovementRegisterRecord> _movementRecords = [];
+
+  // ६. शासकीय आवक-जावक व आरोग्य तपासणी (Inward/Outward & Health)
+  List<InwardLetterRecord> _inwardLetters = [];
+  List<OutwardLetterRecord> _outwardLetters = [];
+  List<StudentHealthRecord> _studentHealthRecords = [];
 
   String _supabaseUrl = '';
   String _supabaseAnonKey = '';
@@ -93,6 +127,27 @@ class AppStateProvider extends ChangeNotifier {
   List<HomeworkModel> get homeworkList => _homeworkList;
   List<OnlineExamModel> get onlineExams => _onlineExams;
   List<ExamResultModel> get examResults => _examResults;
+
+  // जिल्हा परिषद शाळा वैधानिक नोंदवह्या Getters
+  List<MdmDailyAttendanceModel> get mdmAttendanceList => _mdmAttendanceList;
+  List<MdmStockItemModel> get mdmStockList => _mdmStockList;
+  List<MdmMonthlyBillModel> get mdmBillsList => _mdmBillsList;
+
+  List<TextbookDistributionRecord> get textbookDistributions => _textbookDistributions;
+  List<UniformDistributionRecord> get uniformDistributions => _uniformDistributions;
+
+  List<SmcMemberModel> get smcMembers => _smcMembers;
+  List<SmcMeetingModel> get smcMeetings => _smcMeetings;
+
+  List<DeadStockItemModel> get deadStockList => _deadStockList;
+  List<LibraryBookModel> get libraryBooks => _libraryBooks;
+
+  List<TeacherLeaveRecord> get teacherLeaves => _teacherLeaves;
+  List<MovementRegisterRecord> get movementRecords => _movementRecords;
+
+  List<InwardLetterRecord> get inwardLetters => _inwardLetters;
+  List<OutwardLetterRecord> get outwardLetters => _outwardLetters;
+  List<StudentHealthRecord> get studentHealthRecords => _studentHealthRecords;
 
   List<HomeworkModel> getHomeworkForStudent(StudentModel student) {
     return _homeworkList
@@ -216,6 +271,22 @@ class AppStateProvider extends ChangeNotifier {
     _remarksBank = SampleData.remarksBank;
     _homeworkList = CurriculumRepository.getDefaultHomework();
     _onlineExams = CurriculumRepository.getDefaultOnlineExams();
+
+    // Default ZP Statutory Registers
+    _mdmAttendanceList = SampleData.defaultMdmAttendance;
+    _mdmStockList = SampleData.defaultMdmStock;
+    _mdmBillsList = SampleData.defaultMdmBills;
+    _textbookDistributions = SampleData.defaultTextbookDistributions;
+    _uniformDistributions = SampleData.defaultUniformDistributions;
+    _smcMembers = SampleData.defaultSmcMembers;
+    _smcMeetings = SampleData.defaultSmcMeetings;
+    _deadStockList = SampleData.defaultDeadStock;
+    _libraryBooks = SampleData.defaultLibraryBooks;
+    _teacherLeaves = SampleData.defaultTeacherLeaves;
+    _movementRecords = SampleData.defaultMovements;
+    _inwardLetters = SampleData.defaultInwardLetters;
+    _outwardLetters = SampleData.defaultOutwardLetters;
+    _studentHealthRecords = SampleData.defaultHealthRecords;
 
     await _loadFromLocal();
 
@@ -1238,6 +1309,206 @@ class AppStateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ==========================================
+  // ZP Statutory Registers Management Methods
+  // ==========================================
+
+  // १. शालेय पोषण आहार (PM POSHAN / MDM)
+  Future<void> addMdmDailyAttendance(MdmDailyAttendanceModel model) async {
+    final idx = _mdmAttendanceList.indexWhere((m) => m.id == model.id);
+    if (idx >= 0) {
+      _mdmAttendanceList[idx] = model;
+    } else {
+      _mdmAttendanceList.insert(0, model);
+    }
+    // Also deduct stock automatically
+    final riceStock = _mdmStockList.firstWhere((s) => s.itemName.contains('तांदूळ'),
+        orElse: () => MdmStockItemModel(id: 'stk-1', itemName: 'तांदूळ', unit: 'किलो', openingStock: 0, receivedStock: 0, consumedStock: 0));
+    final updatedRice = MdmStockItemModel(
+      id: riceStock.id,
+      itemName: riceStock.itemName,
+      unit: riceStock.unit,
+      openingStock: riceStock.openingStock,
+      receivedStock: riceStock.receivedStock,
+      consumedStock: riceStock.consumedStock + model.riceUsedKg,
+      batchOrChallanNo: riceStock.batchOrChallanNo,
+    );
+    final rIdx = _mdmStockList.indexWhere((s) => s.id == riceStock.id);
+    if (rIdx >= 0) _mdmStockList[rIdx] = updatedRice;
+
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> deleteMdmDailyAttendance(String id) async {
+    _mdmAttendanceList.removeWhere((m) => m.id == id);
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> addOrUpdateMdmStock(MdmStockItemModel item) async {
+    final idx = _mdmStockList.indexWhere((s) => s.id == item.id);
+    if (idx >= 0) {
+      _mdmStockList[idx] = item;
+    } else {
+      _mdmStockList.add(item);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> saveMdmMonthlyBill(MdmMonthlyBillModel bill) async {
+    final idx = _mdmBillsList.indexWhere((b) => b.id == bill.id);
+    if (idx >= 0) {
+      _mdmBillsList[idx] = bill;
+    } else {
+      _mdmBillsList.insert(0, bill);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  // २. समग्र शिक्षा मोफत वाटप (Free Entitlements)
+  Future<void> saveTextbookDistribution(TextbookDistributionRecord rec) async {
+    final idx = _textbookDistributions.indexWhere((t) => t.id == rec.id || t.studentId == rec.studentId);
+    if (idx >= 0) {
+      _textbookDistributions[idx] = rec;
+    } else {
+      _textbookDistributions.add(rec);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> saveUniformDistribution(UniformDistributionRecord rec) async {
+    final idx = _uniformDistributions.indexWhere((u) => u.id == rec.id || u.studentId == rec.studentId);
+    if (idx >= 0) {
+      _uniformDistributions[idx] = rec;
+    } else {
+      _uniformDistributions.add(rec);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  // ३. शाळा व्यवस्थापन समिती (SMC)
+  Future<void> addOrUpdateSmcMember(SmcMemberModel member) async {
+    final idx = _smcMembers.indexWhere((m) => m.id == member.id);
+    if (idx >= 0) {
+      _smcMembers[idx] = member;
+    } else {
+      _smcMembers.add(member);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> deleteSmcMember(String id) async {
+    _smcMembers.removeWhere((m) => m.id == id);
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> addSmcMeeting(SmcMeetingModel meeting) async {
+    final idx = _smcMeetings.indexWhere((m) => m.id == meeting.id);
+    if (idx >= 0) {
+      _smcMeetings[idx] = meeting;
+    } else {
+      _smcMeetings.insert(0, meeting);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  // ४. मृतसाठा व ग्रंथालय (Dead Stock & Library)
+  Future<void> addOrUpdateDeadStockItem(DeadStockItemModel item) async {
+    final idx = _deadStockList.indexWhere((d) => d.id == item.id);
+    if (idx >= 0) {
+      _deadStockList[idx] = item;
+    } else {
+      _deadStockList.add(item);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> deleteDeadStockItem(String id) async {
+    _deadStockList.removeWhere((d) => d.id == id);
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> addOrUpdateLibraryBook(LibraryBookModel book) async {
+    final idx = _libraryBooks.indexWhere((b) => b.id == book.id);
+    if (idx >= 0) {
+      _libraryBooks[idx] = book;
+    } else {
+      _libraryBooks.add(book);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> toggleBookIssue(String bookId, String borrower, bool isIssued) async {
+    final idx = _libraryBooks.indexWhere((b) => b.id == bookId);
+    if (idx >= 0) {
+      final b = _libraryBooks[idx];
+      _libraryBooks[idx] = LibraryBookModel(
+        id: b.id,
+        accessionNumber: b.accessionNumber,
+        bookTitle: b.bookTitle,
+        author: b.author,
+        publisher: b.publisher,
+        category: b.category,
+        price: b.price,
+        totalPages: b.totalPages,
+        isIssued: isIssued,
+        currentBorrowerName: isIssued ? borrower : '',
+        issueDate: isIssued ? DateTime.now() : null,
+        expectedReturnDate: isIssued ? DateTime.now().add(const Duration(days: 7)) : null,
+      );
+      await _saveToLocal();
+      notifyListeners();
+    }
+  }
+
+  // ५. शिक्षक सेवा, रजा व हालचाल (Teacher Leaves & Movement)
+  Future<void> addTeacherLeave(TeacherLeaveRecord record) async {
+    _teacherLeaves.insert(0, record);
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> addMovementRecord(MovementRegisterRecord record) async {
+    _movementRecords.insert(0, record);
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  // ६. शासकीय आवक-जावक व आरोग्य तपासणी (Inward/Outward & Health)
+  Future<void> addInwardLetter(InwardLetterRecord record) async {
+    _inwardLetters.insert(0, record);
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> addOutwardLetter(OutwardLetterRecord record) async {
+    _outwardLetters.insert(0, record);
+    await _saveToLocal();
+    notifyListeners();
+  }
+
+  Future<void> saveHealthRecord(StudentHealthRecord record) async {
+    final idx = _studentHealthRecords.indexWhere((h) => h.id == record.id || h.studentId == record.studentId);
+    if (idx >= 0) {
+      _studentHealthRecords[idx] = record;
+    } else {
+      _studentHealthRecords.add(record);
+    }
+    await _saveToLocal();
+    notifyListeners();
+  }
+
   // Cloud Supabase Connection
   Future<bool> connectSupabase(String url, String anonKey) async {
     _supabaseUrl = url;
@@ -1268,6 +1539,22 @@ class AppStateProvider extends ChangeNotifier {
       await prefs.setString('cce_homework', jsonEncode(_homeworkList.map((h) => h.toJson()).toList()));
       await prefs.setString('cce_online_exams', jsonEncode(_onlineExams.map((e) => e.toJson()).toList()));
       await prefs.setString('cce_exam_results', jsonEncode(_examResults.map((r) => r.toJson()).toList()));
+
+      // ZP Statutory Registers Persistence
+      await prefs.setString('zp_mdm_attendance', jsonEncode(_mdmAttendanceList.map((m) => m.toJson()).toList()));
+      await prefs.setString('zp_mdm_stock', jsonEncode(_mdmStockList.map((s) => s.toJson()).toList()));
+      await prefs.setString('zp_mdm_bills', jsonEncode(_mdmBillsList.map((b) => b.toJson()).toList()));
+      await prefs.setString('zp_textbooks', jsonEncode(_textbookDistributions.map((t) => t.toJson()).toList()));
+      await prefs.setString('zp_uniforms', jsonEncode(_uniformDistributions.map((u) => u.toJson()).toList()));
+      await prefs.setString('zp_smc_members', jsonEncode(_smcMembers.map((m) => m.toJson()).toList()));
+      await prefs.setString('zp_smc_meetings', jsonEncode(_smcMeetings.map((m) => m.toJson()).toList()));
+      await prefs.setString('zp_dead_stock', jsonEncode(_deadStockList.map((d) => d.toJson()).toList()));
+      await prefs.setString('zp_library_books', jsonEncode(_libraryBooks.map((l) => l.toJson()).toList()));
+      await prefs.setString('zp_teacher_leaves', jsonEncode(_teacherLeaves.map((t) => t.toJson()).toList()));
+      await prefs.setString('zp_movements', jsonEncode(_movementRecords.map((m) => m.toJson()).toList()));
+      await prefs.setString('zp_inward_letters', jsonEncode(_inwardLetters.map((i) => i.toJson()).toList()));
+      await prefs.setString('zp_outward_letters', jsonEncode(_outwardLetters.map((o) => o.toJson()).toList()));
+      await prefs.setString('zp_health_records', jsonEncode(_studentHealthRecords.map((h) => h.toJson()).toList()));
       if (_currentUser != null) {
         await prefs.setString('cce_logged_in_user_id', _currentUser!.id);
       } else {
@@ -1401,6 +1688,91 @@ class AppStateProvider extends ChangeNotifier {
       if (resultsStr != null) {
         final List list = jsonDecode(resultsStr);
         _examResults = list.map((e) => ExamResultModel.fromJson(e)).toList();
+      }
+
+      // Load ZP Statutory Registers
+      final mdmAttStr = prefs.getString('zp_mdm_attendance');
+      if (mdmAttStr != null) {
+        final List list = jsonDecode(mdmAttStr);
+        _mdmAttendanceList = list.map((e) => MdmDailyAttendanceModel.fromJson(e)).toList();
+      }
+
+      final mdmStkStr = prefs.getString('zp_mdm_stock');
+      if (mdmStkStr != null) {
+        final List list = jsonDecode(mdmStkStr);
+        _mdmStockList = list.map((e) => MdmStockItemModel.fromJson(e)).toList();
+      }
+
+      final mdmBillsStr = prefs.getString('zp_mdm_bills');
+      if (mdmBillsStr != null) {
+        final List list = jsonDecode(mdmBillsStr);
+        _mdmBillsList = list.map((e) => MdmMonthlyBillModel.fromJson(e)).toList();
+      }
+
+      final tbStr = prefs.getString('zp_textbooks');
+      if (tbStr != null) {
+        final List list = jsonDecode(tbStr);
+        _textbookDistributions = list.map((e) => TextbookDistributionRecord.fromJson(e)).toList();
+      }
+
+      final uniStr = prefs.getString('zp_uniforms');
+      if (uniStr != null) {
+        final List list = jsonDecode(uniStr);
+        _uniformDistributions = list.map((e) => UniformDistributionRecord.fromJson(e)).toList();
+      }
+
+      final smcMemStr = prefs.getString('zp_smc_members');
+      if (smcMemStr != null) {
+        final List list = jsonDecode(smcMemStr);
+        _smcMembers = list.map((e) => SmcMemberModel.fromJson(e)).toList();
+      }
+
+      final smcMeetStr = prefs.getString('zp_smc_meetings');
+      if (smcMeetStr != null) {
+        final List list = jsonDecode(smcMeetStr);
+        _smcMeetings = list.map((e) => SmcMeetingModel.fromJson(e)).toList();
+      }
+
+      final dsStr = prefs.getString('zp_dead_stock');
+      if (dsStr != null) {
+        final List list = jsonDecode(dsStr);
+        _deadStockList = list.map((e) => DeadStockItemModel.fromJson(e)).toList();
+      }
+
+      final libStr = prefs.getString('zp_library_books');
+      if (libStr != null) {
+        final List list = jsonDecode(libStr);
+        _libraryBooks = list.map((e) => LibraryBookModel.fromJson(e)).toList();
+      }
+
+      final tlStr = prefs.getString('zp_teacher_leaves');
+      if (tlStr != null) {
+        final List list = jsonDecode(tlStr);
+        _teacherLeaves = list.map((e) => TeacherLeaveRecord.fromJson(e)).toList();
+      }
+
+      final movStr = prefs.getString('zp_movements');
+      if (movStr != null) {
+        final List list = jsonDecode(movStr);
+        _movementRecords = list.map((e) => MovementRegisterRecord.fromJson(e)).toList();
+      }
+
+      final inStr = prefs.getString('zp_inward_letters');
+      if (inStr != null) {
+        final List list = jsonDecode(inStr);
+        _inwardLetters = list.map((e) => InwardLetterRecord.fromJson(e)).toList();
+      }
+
+      final outStr = prefs.getString('zp_outward_letters');
+      if (outStr != null) {
+        final List list = jsonDecode(outStr);
+        _outwardLetters = list.map((e) => OutwardLetterRecord.fromJson(e)).toList();
+      }
+
+      final hlthStr = prefs.getString('zp_health_records');
+      if (hlthStr != null) {
+        final List list = jsonDecode(hlthStr);
+        _studentHealthRecords = list.map((e) => StudentHealthRecord.fromJson(e)).toList();
       }
 
       // Load Users & Class Allocations

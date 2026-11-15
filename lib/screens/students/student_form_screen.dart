@@ -89,14 +89,19 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     final state = context.read<AppStateProvider>();
     final s = widget.studentToEdit;
 
-    _selectedAcademicYearId = s?.academicYearId ?? widget.initialAcademicYearId ?? state.currentYear.id;
+    _selectedAcademicYearId =
+        s?.academicYearId ??
+        widget.initialAcademicYearId ??
+        state.currentYear.id;
     _standard = s?.standard ?? state.selectedStd;
     _division = s?.division ?? state.selectedDiv;
 
     // शालेय ओळख
     _grNoCtrl = TextEditingController(text: s?.grNo ?? '');
     _uDiseNoCtrl = TextEditingController(
-      text: (s?.uDiseNo != null && s!.uDiseNo.isNotEmpty) ? s.uDiseNo : state.school.udiseCode,
+      text: (s?.uDiseNo != null && s!.uDiseNo.isNotEmpty)
+          ? s.uDiseNo
+          : state.school.udiseCode,
     );
     _saralIdCtrl = TextEditingController(text: s?.saralId ?? '');
     _aadhaarNoCtrl = TextEditingController(text: s?.aadhaarNo ?? '');
@@ -108,18 +113,30 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     _motherNameCtrl = TextEditingController(text: s?.motherName ?? '');
     _gender = s?.gender ?? 'M';
     _nationalityCtrl = TextEditingController(
-      text: (s?.nationality != null && s!.nationality.isNotEmpty) ? s.nationality : 'भारतीय',
+      text: (s?.nationality != null && s!.nationality.isNotEmpty)
+          ? s.nationality
+          : 'भारतीय',
     );
     _motherTongueCtrl = TextEditingController(
-      text: (s?.motherTongue != null && s!.motherTongue.isNotEmpty) ? s.motherTongue : 'मराठी',
+      text: (s?.motherTongue != null && s!.motherTongue.isNotEmpty)
+          ? s.motherTongue
+          : 'मराठी',
     );
-    _religionCtrl = TextEditingController(text: (s?.religion != null && s!.religion.isNotEmpty) ? s.religion : 'हिंदू');
+    _religionCtrl = TextEditingController(
+      text: (s?.religion != null && s!.religion.isNotEmpty)
+          ? s.religion
+          : 'हिंदू',
+    );
     _casteCtrl = TextEditingController(text: s?.caste ?? '');
     _subCasteCtrl = TextEditingController(text: s?.subCaste ?? '');
     _casteCategory = s?.casteCategory ?? 'OPEN';
     _birthPlaceCtrl = TextEditingController(text: s?.birthPlace ?? '');
-    _talukaCtrl = TextEditingController(text: s?.taluka ?? state.school.blockTaluka);
-    _districtCtrl = TextEditingController(text: s?.district ?? state.school.district);
+    _talukaCtrl = TextEditingController(
+      text: s?.taluka ?? state.school.blockTaluka,
+    );
+    _districtCtrl = TextEditingController(
+      text: s?.district ?? state.school.district,
+    );
     _dob = s?.dateOfBirth ?? DateTime(2018, 1, 1);
     _dobWordsCtrl = TextEditingController(
       text: (s?.dobWords != null && s!.dobWords.isNotEmpty)
@@ -130,21 +147,39 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     // प्रवेश तपशील
     _previousSchoolCtrl = TextEditingController(text: s?.previousSchool ?? '');
     _admissionDate = s?.admissionDate ?? DateTime.now();
-    _rollSem1Ctrl = TextEditingController(text: (s?.rollNoSem1 ?? 1).toString());
-    _rollSem2Ctrl = TextEditingController(text: (s?.rollNoSem2 ?? (s?.rollNoSem1 ?? 1)).toString());
+    _rollSem1Ctrl = TextEditingController(
+      text: (s?.rollNoSem1 ?? 1).toString(),
+    );
+    _rollSem2Ctrl = TextEditingController(
+      text: (s?.rollNoSem2 ?? (s?.rollNoSem1 ?? 1)).toString(),
+    );
     _remarksCtrl = TextEditingController(text: s?.remarks ?? '');
 
     // संपर्क व शारीरिक
     _mobileNoCtrl = TextEditingController(text: s?.mobileNo ?? '');
-    _addressCtrl = TextEditingController(text: s?.address ?? state.school.address);
+    _addressCtrl = TextEditingController(
+      text: s?.address ?? state.school.address,
+    );
     _apaarIdCtrl = TextEditingController(text: s?.apaarId ?? '');
     _penNoCtrl = TextEditingController(text: s?.penNo ?? '');
-    _fatherWorkCtrl = TextEditingController(text: s?.fatherOccupation ?? 'शेती');
-    _motherWorkCtrl = TextEditingController(text: s?.motherOccupation ?? 'गृहिणी');
-    _heightSem1Ctrl = TextEditingController(text: s?.heightSem1?.toString() ?? '');
-    _heightSem2Ctrl = TextEditingController(text: s?.heightSem2?.toString() ?? '');
-    _weightSem1Ctrl = TextEditingController(text: s?.weightSem1?.toString() ?? '');
-    _weightSem2Ctrl = TextEditingController(text: s?.weightSem2?.toString() ?? '');
+    _fatherWorkCtrl = TextEditingController(
+      text: s?.fatherOccupation ?? 'शेती',
+    );
+    _motherWorkCtrl = TextEditingController(
+      text: s?.motherOccupation ?? 'गृहिणी',
+    );
+    _heightSem1Ctrl = TextEditingController(
+      text: s?.heightSem1?.toString() ?? '',
+    );
+    _heightSem2Ctrl = TextEditingController(
+      text: s?.heightSem2?.toString() ?? '',
+    );
+    _weightSem1Ctrl = TextEditingController(
+      text: s?.weightSem1?.toString() ?? '',
+    );
+    _weightSem2Ctrl = TextEditingController(
+      text: s?.weightSem2?.toString() ?? '',
+    );
 
     if (s == null) {
       _autoSuggestGrNo();
@@ -169,7 +204,12 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     if (widget.studentToEdit != null) return;
     final state = context.read<AppStateProvider>();
     final count = state.students
-        .where((s) => s.standard == std && s.division == div && s.academicYearId == state.currentYear.id)
+        .where(
+          (s) =>
+              s.standard == std &&
+              s.division == div &&
+              s.academicYearId == state.currentYear.id,
+        )
         .length;
     final nextRoll = count + 1;
     _rollSem1Ctrl.text = nextRoll.toString();
@@ -245,7 +285,9 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('कृपया आवश्यक माहिती भरा (Please fill all mandatory fields)'),
+          content: Text(
+            'कृपया आवश्यक माहिती भरा (Please fill all mandatory fields)',
+          ),
           backgroundColor: AppColors.gradeD,
         ),
       );
@@ -254,14 +296,18 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
 
     final state = context.read<AppStateProvider>();
     final stu = StudentModel(
-      id: widget.studentToEdit?.id ?? 'stu_${DateTime.now().millisecondsSinceEpoch}',
+      id:
+          widget.studentToEdit?.id ??
+          'stu_${DateTime.now().millisecondsSinceEpoch}',
       schoolId: state.school.id,
       academicYearId: _selectedAcademicYearId,
       standard: _standard,
       division: _division,
       grNo: _grNoCtrl.text.trim(),
       rollNoSem1: int.tryParse(_rollSem1Ctrl.text.trim()) ?? 1,
-      rollNoSem2: int.tryParse(_rollSem2Ctrl.text.trim()) ?? (int.tryParse(_rollSem1Ctrl.text.trim()) ?? 1),
+      rollNoSem2:
+          int.tryParse(_rollSem2Ctrl.text.trim()) ??
+          (int.tryParse(_rollSem1Ctrl.text.trim()) ?? 1),
       studentNameMr: _nameMrCtrl.text.trim(),
       studentNameEn: _nameEnCtrl.text.trim(),
       fatherName: _fatherNameCtrl.text.trim(),
@@ -312,7 +358,10 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                 widget.studentToEdit == null
                     ? 'नवीन प्रवेशाची माहिती यशस्वीरित्या जतन झाली! (इयत्ता ${MarathiDateFormatter.classToMarathi(_standard)} तुकडी $_division मध्ये जोडले)'
                     : 'विद्यार्थी माहिती यशस्वीरित्या अपडेट झाली!',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
             ),
           ],
@@ -333,7 +382,9 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: Text(
-          isEditing ? 'विद्यार्थी माहिती संपादन' : 'नवीन विद्यार्थी प्रवेश (New Admission)',
+          isEditing
+              ? 'विद्यार्थी माहिती संपादन'
+              : 'नवीन विद्यार्थी प्रवेश (New Admission)',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -345,10 +396,13 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
               label: Text(isEditing ? 'माहिती जतन करा' : 'प्रवेश निश्चित करा'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
               ),
             ),
-          )
+          ),
         ],
       ),
       body: Center(
@@ -370,16 +424,25 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                     ),
                     child: Container(
                       decoration: const BoxDecoration(
-                        border: Border(top: BorderSide(color: Color(0xFF0D6EFD), width: 5)),
+                        border: Border(
+                          top: BorderSide(color: Color(0xFF0D6EFD), width: 5),
+                        ),
                         borderRadius: BorderRadius.all(Radius.circular(12)),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 28),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 28,
+                      ),
                       child: Column(
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.how_to_reg, color: Color(0xFF0D6EFD), size: 28),
+                              const Icon(
+                                Icons.how_to_reg,
+                                color: Color(0xFF0D6EFD),
+                                size: 28,
+                              ),
                               const SizedBox(width: 10),
                               Flexible(
                                 child: Text(
@@ -400,11 +463,21 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                           const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.info_outline, size: 15, color: AppColors.textSecondary),
+                              Icon(
+                                Icons.info_outline,
+                                size: 15,
+                                color: AppColors.textSecondary,
+                              ),
                               SizedBox(width: 6),
-                              Text(
-                                'कृपया सर्व माहिती अचूक भरा (Please fill all information accurately)',
-                                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                              Flexible(
+                                child: Text(
+                                  'कृपया सर्व माहिती अचूक भरा (Please fill all information accurately)',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ),
@@ -425,16 +498,23 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                             Expanded(
                               flex: 2,
                               child: DropdownButtonFormField<String>(
-                                value: state.academicYears.any((y) => y.id == _selectedAcademicYearId)
+                                value:
+                                    state.academicYears.any(
+                                      (y) => y.id == _selectedAcademicYearId,
+                                    )
                                     ? _selectedAcademicYearId
                                     : state.currentYear.id,
                                 decoration: const InputDecoration(
                                   labelText: 'शैक्षणिक वर्ष (Academic Year) *',
-                                  prefixIcon: Icon(Icons.calendar_month, size: 18),
+                                  prefixIcon: Icon(
+                                    Icons.calendar_month,
+                                    size: 18,
+                                  ),
                                 ),
                                 isExpanded: true,
                                 items: state.academicYears.map((yr) {
-                                  final isCurrent = yr.id == state.currentYear.id;
+                                  final isCurrent =
+                                      yr.id == state.currentYear.id;
                                   return DropdownMenuItem(
                                     value: yr.id,
                                     child: Text(
@@ -444,7 +524,10 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                   );
                                 }).toList(),
                                 onChanged: (val) {
-                                  if (val != null) setState(() => _selectedAcademicYearId = val);
+                                  if (val != null)
+                                    setState(
+                                      () => _selectedAcademicYearId = val,
+                                    );
                                 },
                               ),
                             ),
@@ -458,7 +541,9 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                   prefixIcon: Icon(Icons.pin, size: 18),
                                 ),
                                 validator: (val) =>
-                                    (val == null || val.trim().isEmpty) ? 'जनरल रजि. क्र. आवश्यक आहे' : null,
+                                    (val == null || val.trim().isEmpty)
+                                    ? 'जनरल रजि. क्र. आवश्यक आहे'
+                                    : null,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -481,7 +566,13 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                               child: TextFormField(
                                 controller: _saralIdCtrl,
                                 maxLength: 19,
-                                buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) => null,
+                                buildCounter:
+                                    (
+                                      ctx, {
+                                      required currentLength,
+                                      required isFocused,
+                                      maxLength,
+                                    }) => null,
                                 decoration: const InputDecoration(
                                   labelText: 'स्टूडेंट आय. डी. (Saral ID)',
                                   hintText: '19 अंकी सरल आयडी',
@@ -495,7 +586,13 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                 controller: _aadhaarNoCtrl,
                                 maxLength: 12,
                                 keyboardType: TextInputType.number,
-                                buildCounter: (ctx, {required currentLength, required isFocused, maxLength}) => null,
+                                buildCounter:
+                                    (
+                                      ctx, {
+                                      required currentLength,
+                                      required isFocused,
+                                      maxLength,
+                                    }) => null,
                                 decoration: const InputDecoration(
                                   labelText: 'आधार कार्ड क्रमांक (Aadhaar)',
                                   hintText: '12 अंकी आधार नंबर',
@@ -523,12 +620,16 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                               child: TextFormField(
                                 controller: _nameMrCtrl,
                                 decoration: const InputDecoration(
-                                  labelText: 'विद्यार्थ्याचे पूर्ण नाव (मराठीत) *',
-                                  hintText: 'नाव - वडिलांचे नाव - आडनाव (उदा. सचिन रमेश तेंडुलकर)',
+                                  labelText:
+                                      'विद्यार्थ्याचे पूर्ण नाव (मराठीत) *',
+                                  hintText:
+                                      'नाव - वडिलांचे नाव - आडनाव (उदा. सचिन रमेश तेंडुलकर)',
                                   prefixIcon: Icon(Icons.person, size: 18),
                                 ),
                                 validator: (val) =>
-                                    (val == null || val.trim().isEmpty) ? 'विद्यार्थ्याचे नाव आवश्यक आहे' : null,
+                                    (val == null || val.trim().isEmpty)
+                                    ? 'विद्यार्थ्याचे नाव आवश्यक आहे'
+                                    : null,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -564,14 +665,26 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                               child: DropdownButtonFormField<String>(
                                 value: _gender,
                                 isExpanded: true,
-                                decoration: const InputDecoration(labelText: 'लिंग (Gender)'),
+                                decoration: const InputDecoration(
+                                  labelText: 'लिंग (Gender)',
+                                ),
                                 items: const [
-                                  DropdownMenuItem(value: 'M', child: Text('मुलगा (Male)')),
-                                  DropdownMenuItem(value: 'F', child: Text('मुलगी (Female)')),
-                                  DropdownMenuItem(value: 'T', child: Text('इतर (Other)')),
+                                  DropdownMenuItem(
+                                    value: 'M',
+                                    child: Text('मुलगा (Male)'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'F',
+                                    child: Text('मुलगी (Female)'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'T',
+                                    child: Text('इतर (Other)'),
+                                  ),
                                 ],
                                 onChanged: (val) {
-                                  if (val != null) setState(() => _gender = val);
+                                  if (val != null)
+                                    setState(() => _gender = val);
                                 },
                               ),
                             ),
@@ -579,14 +692,18 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                             Expanded(
                               child: TextFormField(
                                 controller: _nationalityCtrl,
-                                decoration: const InputDecoration(labelText: 'राष्ट्रीयत्व (Nationality)'),
+                                decoration: const InputDecoration(
+                                  labelText: 'राष्ट्रीयत्व (Nationality)',
+                                ),
                               ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
                               child: TextFormField(
                                 controller: _motherTongueCtrl,
-                                decoration: const InputDecoration(labelText: 'मातृभाषा (Mother Tongue)'),
+                                decoration: const InputDecoration(
+                                  labelText: 'मातृभाषा (Mother Tongue)',
+                                ),
                               ),
                             ),
                           ],
@@ -597,31 +714,45 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                           children: [
                             Expanded(
                               child: Autocomplete<String>(
-                                initialValue: TextEditingValue(text: _religionCtrl.text),
-                                optionsBuilder: (TextEditingValue textEditingValue) {
-                                  if (textEditingValue.text.isEmpty) {
-                                    return _religionOptions;
-                                  }
-                                  return _religionOptions.where((String option) {
-                                    return option.contains(textEditingValue.text);
-                                  });
-                                },
+                                initialValue: TextEditingValue(
+                                  text: _religionCtrl.text,
+                                ),
+                                optionsBuilder:
+                                    (TextEditingValue textEditingValue) {
+                                      if (textEditingValue.text.isEmpty) {
+                                        return _religionOptions;
+                                      }
+                                      return _religionOptions.where((
+                                        String option,
+                                      ) {
+                                        return option.contains(
+                                          textEditingValue.text,
+                                        );
+                                      });
+                                    },
                                 onSelected: (String selection) {
                                   _religionCtrl.text = selection;
                                 },
-                                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                                  controller.addListener(() {
-                                    _religionCtrl.text = controller.text;
-                                  });
-                                  return TextFormField(
-                                    controller: controller,
-                                    focusNode: focusNode,
-                                    decoration: const InputDecoration(
-                                      labelText: 'धर्म (Religion)',
-                                      hintText: 'उदा. हिंदू, मुस्लीम, बौद्ध',
-                                    ),
-                                  );
-                                },
+                                fieldViewBuilder:
+                                    (
+                                      context,
+                                      controller,
+                                      focusNode,
+                                      onFieldSubmitted,
+                                    ) {
+                                      controller.addListener(() {
+                                        _religionCtrl.text = controller.text;
+                                      });
+                                      return TextFormField(
+                                        controller: controller,
+                                        focusNode: focusNode,
+                                        decoration: const InputDecoration(
+                                          labelText: 'धर्म (Religion)',
+                                          hintText:
+                                              'उदा. हिंदू, मुस्लीम, बौद्ध',
+                                        ),
+                                      );
+                                    },
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -649,19 +780,46 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                               child: DropdownButtonFormField<String>(
                                 value: _casteCategory,
                                 isExpanded: true,
-                                decoration: const InputDecoration(labelText: 'जात प्रवर्ग (Category)'),
+                                decoration: const InputDecoration(
+                                  labelText: 'जात प्रवर्ग (Category)',
+                                ),
                                 items: const [
-                                  DropdownMenuItem(value: 'OPEN', child: Text('OPEN')),
-                                  DropdownMenuItem(value: 'OBC', child: Text('OBC')),
-                                  DropdownMenuItem(value: 'SC', child: Text('SC')),
-                                  DropdownMenuItem(value: 'ST', child: Text('ST')),
-                                  DropdownMenuItem(value: 'VJNT', child: Text('VJNT')),
-                                  DropdownMenuItem(value: 'SBC', child: Text('SBC')),
-                                  DropdownMenuItem(value: 'SEBC', child: Text('SEBC')),
-                                  DropdownMenuItem(value: 'EWS', child: Text('EWS')),
+                                  DropdownMenuItem(
+                                    value: 'OPEN',
+                                    child: Text('OPEN'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'OBC',
+                                    child: Text('OBC'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'SC',
+                                    child: Text('SC'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'ST',
+                                    child: Text('ST'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'VJNT',
+                                    child: Text('VJNT'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'SBC',
+                                    child: Text('SBC'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'SEBC',
+                                    child: Text('SEBC'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'EWS',
+                                    child: Text('EWS'),
+                                  ),
                                 ],
                                 onChanged: (val) {
-                                  if (val != null) setState(() => _casteCategory = val);
+                                  if (val != null)
+                                    setState(() => _casteCategory = val);
                                 },
                               ),
                             ),
@@ -677,8 +835,12 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                 controller: _birthPlaceCtrl,
                                 decoration: const InputDecoration(
                                   labelText: 'जन्मस्थळ (Birth Place)',
-                                  hintText: 'गाव, तालुका, जिल्हा (उदा. अकोले, अहिल्यानगर)',
-                                  prefixIcon: Icon(Icons.location_on_outlined, size: 18),
+                                  hintText:
+                                      'गाव, तालुका, जिल्हा (उदा. अकोले, अहिल्यानगर)',
+                                  prefixIcon: Icon(
+                                    Icons.location_on_outlined,
+                                    size: 18,
+                                  ),
                                 ),
                               ),
                             ),
@@ -689,11 +851,17 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                 child: InputDecorator(
                                   decoration: const InputDecoration(
                                     labelText: 'जन्म दिनांक (अंकी) *',
-                                    suffixIcon: Icon(Icons.calendar_month, color: Color(0xFF0D6EFD)),
+                                    suffixIcon: Icon(
+                                      Icons.calendar_month,
+                                      color: Color(0xFF0D6EFD),
+                                    ),
                                   ),
                                   child: Text(
                                     DateFormat('dd/MM/yyyy').format(_dob),
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -704,14 +872,24 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                               child: TextFormField(
                                 controller: _dobWordsCtrl,
                                 readOnly: true,
-                                style: const TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  color: Color(0xFF1E293B),
+                                  fontWeight: FontWeight.w600,
+                                ),
                                 decoration: InputDecoration(
                                   labelText: 'जन्म दिनांक (अक्षरी)',
                                   fillColor: const Color(0xFFF8FAFC),
                                   filled: true,
-                                  prefixIcon: const Icon(Icons.text_fields, size: 18),
-                                  helperText: 'जन्मतारीख निवडल्यास मराठीत आपोआप तयार होईल',
-                                  helperStyle: TextStyle(fontSize: 11, color: Colors.blueGrey.shade600),
+                                  prefixIcon: const Icon(
+                                    Icons.text_fields,
+                                    size: 18,
+                                  ),
+                                  helperText:
+                                      'जन्मतारीख निवडल्यास मराठीत आपोआप तयार होईल',
+                                  helperStyle: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.blueGrey.shade600,
+                                  ),
                                 ),
                               ),
                             ),
@@ -735,7 +913,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                               child: TextFormField(
                                 controller: _previousSchoolCtrl,
                                 decoration: const InputDecoration(
-                                  labelText: 'या पूर्वीची शाळा (Previous School)',
+                                  labelText:
+                                      'या पूर्वीची शाळा (Previous School)',
                                   hintText: 'शाळेचे नाव व पत्ता',
                                   prefixIcon: Icon(Icons.history_edu, size: 18),
                                 ),
@@ -748,11 +927,18 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                 child: InputDecorator(
                                   decoration: const InputDecoration(
                                     labelText: 'प्रवेश दिनांक (Admission Date)',
-                                    suffixIcon: Icon(Icons.event, color: Color(0xFF0D6EFD)),
+                                    suffixIcon: Icon(
+                                      Icons.event,
+                                      color: Color(0xFF0D6EFD),
+                                    ),
                                   ),
                                   child: Text(
-                                    DateFormat('dd/MM/yyyy').format(_admissionDate),
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                    DateFormat(
+                                      'dd/MM/yyyy',
+                                    ).format(_admissionDate),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -773,12 +959,18 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                               Expanded(
                                 flex: 2,
                                 child: DropdownButtonFormField<int>(
-                                  value: state.availableStandards.contains(_standard)
+                                  value:
+                                      state.availableStandards.contains(
+                                        _standard,
+                                      )
                                       ? _standard
-                                      : (state.availableStandards.isNotEmpty ? state.availableStandards.first : null),
+                                      : (state.availableStandards.isNotEmpty
+                                            ? state.availableStandards.first
+                                            : null),
                                   isExpanded: true,
                                   decoration: const InputDecoration(
-                                    labelText: 'प्रवेशाची इयत्ता (Admission Class) *',
+                                    labelText:
+                                        'प्रवेशाची इयत्ता (Admission Class) *',
                                     filled: true,
                                     fillColor: Colors.white,
                                   ),
@@ -787,7 +979,9 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                       value: std,
                                       child: Text(
                                         '${MarathiDateFormatter.classToMarathi(std)} (इयत्ता $std)',
-                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     );
                                   }).toList(),
@@ -795,7 +989,10 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                     if (val != null) {
                                       setState(() {
                                         _standard = val;
-                                        _updateRollNoForStandardAndDiv(_standard, _division);
+                                        _updateRollNoForStandardAndDiv(
+                                          _standard,
+                                          _division,
+                                        );
                                       });
                                     }
                                   },
@@ -804,9 +1001,14 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                               const SizedBox(width: 16),
                               Expanded(
                                 child: DropdownButtonFormField<String>(
-                                  value: state.availableDivisions.contains(_division)
+                                  value:
+                                      state.availableDivisions.contains(
+                                        _division,
+                                      )
                                       ? _division
-                                      : (state.availableDivisions.isNotEmpty ? state.availableDivisions.first : null),
+                                      : (state.availableDivisions.isNotEmpty
+                                            ? state.availableDivisions.first
+                                            : null),
                                   isExpanded: true,
                                   decoration: const InputDecoration(
                                     labelText: 'तुकडी (Division) *',
@@ -823,7 +1025,10 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                     if (val != null) {
                                       setState(() {
                                         _division = val;
-                                        _updateRollNoForStandardAndDiv(_standard, _division);
+                                        _updateRollNoForStandardAndDiv(
+                                          _standard,
+                                          _division,
+                                        );
                                       });
                                     }
                                   },
@@ -840,7 +1045,9 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                     fillColor: Colors.white,
                                   ),
                                   validator: (val) =>
-                                      (val == null || val.trim().isEmpty) ? 'हजेरी क्र. आवश्यक' : null,
+                                      (val == null || val.trim().isEmpty)
+                                      ? 'हजेरी क्र. आवश्यक'
+                                      : null,
                                 ),
                               ),
                             ],
@@ -870,22 +1077,30 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 12,
+                      ),
                       child: Row(
                         children: [
                           Icon(
-                            _showAdditionalDetails ? Icons.expand_less : Icons.expand_more,
+                            _showAdditionalDetails
+                                ? Icons.expand_less
+                                : Icons.expand_more,
                             color: const Color(0xFF0D6EFD),
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            _showAdditionalDetails
-                                ? 'अतिरिक्त संपर्क व आरोग्य तपशील लपवा'
-                                : 'अतिरिक्त संपर्क, पत्ता व आरोग्य तपशील भरा (Optional Details)',
-                            style: const TextStyle(
-                              color: Color(0xFF0D6EFD),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                          Expanded(
+                            child: Text(
+                              _showAdditionalDetails
+                                  ? 'अतिरिक्त संपर्क व आरोग्य तपशील लपवा'
+                                  : 'अतिरिक्त संपर्क, पत्ता व आरोग्य तपशील भरा (Optional Details)',
+                              style: const TextStyle(
+                                color: Color(0xFF0D6EFD),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -907,7 +1122,8 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                 child: TextFormField(
                                   controller: _nameEnCtrl,
                                   decoration: const InputDecoration(
-                                    labelText: 'विद्यार्थ्याचे नाव इंग्रजीत (In English)',
+                                    labelText:
+                                        'विद्यार्थ्याचे नाव इंग्रजीत (In English)',
                                     hintText: 'e.g. Patil Sachin Ramesh',
                                   ),
                                 ),
@@ -927,7 +1143,9 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                               Expanded(
                                 child: TextFormField(
                                   controller: _fatherWorkCtrl,
-                                  decoration: const InputDecoration(labelText: 'वडिलांचा व्यवसाय'),
+                                  decoration: const InputDecoration(
+                                    labelText: 'वडिलांचा व्यवसाय',
+                                  ),
                                 ),
                               ),
                             ],
@@ -942,7 +1160,10 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                   controller: _addressCtrl,
                                   decoration: const InputDecoration(
                                     labelText: 'घरचा संपूर्ण पत्ता (Address)',
-                                    prefixIcon: Icon(Icons.home_outlined, size: 18),
+                                    prefixIcon: Icon(
+                                      Icons.home_outlined,
+                                      size: 18,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -950,14 +1171,18 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                               Expanded(
                                 child: TextFormField(
                                   controller: _apaarIdCtrl,
-                                  decoration: const InputDecoration(labelText: 'अपार आयडी (APAAR ID)'),
+                                  decoration: const InputDecoration(
+                                    labelText: 'अपार आयडी (APAAR ID)',
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
                                 child: TextFormField(
                                   controller: _penNoCtrl,
-                                  decoration: const InputDecoration(labelText: 'PEN क्रमांक (PEN No.)'),
+                                  decoration: const InputDecoration(
+                                    labelText: 'PEN क्रमांक (PEN No.)',
+                                  ),
                                 ),
                               ),
                             ],
@@ -1027,8 +1252,13 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                         onPressed: _saveStudent,
                         icon: const Icon(Icons.how_to_reg, size: 22),
                         label: Text(
-                          isEditing ? 'माहिती जतन करा' : 'प्रवेश निश्चित करा (Save Admission)',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          isEditing
+                              ? 'माहिती जतन करा'
+                              : 'प्रवेश निश्चित करा (Save Admission)',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0D6EFD),
