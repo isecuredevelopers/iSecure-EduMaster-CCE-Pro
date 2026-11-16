@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/user_model.dart';
 import '../../providers/app_state_provider.dart';
+import '../../widgets/school_logo_widget.dart';
 import '../portal/student_parent_portal_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -383,25 +384,12 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF2563EB).withOpacity(0.35),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.school, size: 24, color: Colors.white),
+                  SchoolLogoWidget(
+                    logoUrl: (school.softwareLogoUrl != null && school.softwareLogoUrl!.isNotEmpty)
+                        ? school.softwareLogoUrl
+                        : 'assets/images/isecure_favicon.png',
+                    size: 42,
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -573,16 +561,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildSchoolMiniHeader(dynamic school) {
     return Column(
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.school, size: 24, color: Colors.white),
+        SchoolLogoWidget(
+          logoUrl: (school.softwareLogoUrl != null && school.softwareLogoUrl!.isNotEmpty)
+              ? school.softwareLogoUrl
+              : 'assets/images/isecure_favicon.png',
+          size: 48,
+          borderRadius: BorderRadius.circular(12),
         ),
         const SizedBox(height: 8),
         Text(

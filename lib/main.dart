@@ -76,17 +76,60 @@ class _MainShellScreenState extends State<MainShellScreen> {
     final state = context.watch<AppStateProvider>();
 
     if (state.isLoading) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
+      return Scaffold(
+        backgroundColor: Colors.white,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: AppColors.primary),
-              SizedBox(height: 16),
+              Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 18,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/images/isecure_favicon.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: const Color(0xFF0284C7),
+                      child: const Icon(Icons.school, color: Colors.white, size: 48),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               Text(
-                'CCE 8.1 PRO लोड होत आहे...',
-                style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                state.school.schoolName.isNotEmpty ? state.school.schoolName : 'जिल्हा परिषद प्राथमिक शाळा',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0F172A),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '॥ शिक्षण हेच जीवन ॥ • iSecure EduMaster CCE Pro',
+                style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 24),
+              const SizedBox(
+                width: 140,
+                child: LinearProgressIndicator(
+                  color: Color(0xFF0284C7),
+                  backgroundColor: Color(0xFFE2E8F0),
+                  minHeight: 3.5,
+                ),
               ),
             ],
           ),
