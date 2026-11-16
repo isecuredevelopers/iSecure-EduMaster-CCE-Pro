@@ -1352,10 +1352,6 @@ class AppStateProvider extends ChangeNotifier {
     _selectedStd = match.standard;
     _selectedDiv = match.division;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('cce_logged_in_user_id', _currentUser!.id);
-    await prefs.setString('cce_logged_in_student_id', match.id);
-
     await _saveToLocal();
     notifyListeners();
 
@@ -1733,16 +1729,6 @@ class AppStateProvider extends ChangeNotifier {
       await prefs.setString('zp_inward_letters', jsonEncode(_inwardLetters.map((i) => i.toJson()).toList()));
       await prefs.setString('zp_outward_letters', jsonEncode(_outwardLetters.map((o) => o.toJson()).toList()));
       await prefs.setString('zp_health_records', jsonEncode(_studentHealthRecords.map((h) => h.toJson()).toList()));
-      if (_currentUser != null) {
-        await prefs.setString('cce_logged_in_user_id', _currentUser!.id);
-      } else {
-        await prefs.remove('cce_logged_in_user_id');
-      }
-      if (_currentStudent != null) {
-        await prefs.setString('cce_logged_in_student_id', _currentStudent!.id);
-      } else {
-        await prefs.remove('cce_logged_in_student_id');
-      }
     } catch (e) {
       debugPrint('Local save error: $e');
     }
@@ -1966,51 +1952,12 @@ class AppStateProvider extends ChangeNotifier {
       }
       _ensureDefaultUsers();
 
-      // Restore active session
-      final loggedInId = prefs.getString('cce_logged_in_user_id');
-      if (loggedInId != null) {
-        final matched = _users.where((u) => u.id == loggedInId && u.isActive).toList();
-        if (matched.isNotEmpty) {
-          _currentUser = matched.first;
-          if (!_currentUser!.isAdmin && _currentUser!.allocatedClasses.isNotEmpty) {
-            if (!_currentUser!.allocatedStandards.contains(_selectedStd)) {
-              _selectedStd = _currentUser!.allocatedClasses.first.standard;
-              _selectedDiv = _currentUser!.allocatedClasses.first.division;
-            }
-          }
-        }
+      // Always start fresh on the Login Screen every time the app opens
+      if (_currentUser == null) {
+        _currentStudent = null;
       }
-
-      // Restore active student session
-      final loggedInStudentId = prefs.getString('cce_logged_in_student_id');
-      if (loggedInStudentId != null) {
-        final stu = _students.where((s) => s.id == loggedInStudentId).firstOrNull;
-        if (stu != null) {
-          if (isStudentLeftSchool(stu)) {
-            // Student has left school: permanently close access!
-            _currentUser = null;
-            _currentStudent = null;
-            await prefs.remove('cce_logged_in_user_id');
-            await prefs.remove('cce_logged_in_student_id');
-          } else {
-            _currentStudent = stu;
-            _currentUser = UserModel(
-              id: 'usr_student_${stu.id}',
-              name: stu.studentNameMr.isNotEmpty ? stu.studentNameMr : stu.studentNameEn,
-              username: stu.grNo.isNotEmpty ? stu.grNo : 'student',
-              password: '',
-              role: AppRole.student,
-              mobile: stu.mobileNo,
-              allocatedClasses: [
-                ClassAllocationModel(standard: stu.standard, division: stu.division),
-              ],
-              isActive: true,
-            );
-            _selectedStd = stu.standard;
-            _selectedDiv = stu.division;
-          }
-        }
-      }
+      await prefs.remove('cce_logged_in_user_id');
+      await prefs.remove('cce_logged_in_student_id');
 
       _supabaseUrl = prefs.getString('supabase_url') ?? '';
       _supabaseAnonKey = prefs.getString('supabase_anon_key') ?? '';

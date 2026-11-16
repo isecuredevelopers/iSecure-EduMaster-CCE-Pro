@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:myschool/data/models/leaving_certificate_model.dart';
 import 'package:myschool/data/models/student_model.dart';
+import 'package:myschool/main.dart';
 import 'package:myschool/providers/app_state_provider.dart';
 import 'package:myschool/screens/auth/login_screen.dart';
 import 'package:myschool/screens/portal/student_parent_portal_screen.dart';
@@ -126,6 +127,13 @@ void main() {
   });
 
   group('LoginScreen & Student Portal Widget Tests', () {
+    testWidgets('App opens on Login Screen by default upon launch', (tester) async {
+      await tester.pumpWidget(const MySchoolApp());
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
     testWidgets('LoginScreen shows clean Student Tab with NO roles displayed', (tester) async {
       final provider = AppStateProvider();
 
@@ -167,6 +175,7 @@ void main() {
       addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
 
       final provider = AppStateProvider();
+      await tester.pump(const Duration(milliseconds: 100));
       final student = provider.students.first;
 
       // Log in as student
