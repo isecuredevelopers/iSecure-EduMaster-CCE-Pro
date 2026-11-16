@@ -48,6 +48,11 @@ app.*.map.json
 
 # Temporary database reverse engineering dumps
 cce_*.json
+
+dist/
+scratch/
+android/local_repo/
+
 extract_cce_schema.ps1
 test_access.ps1
 vba_code/
