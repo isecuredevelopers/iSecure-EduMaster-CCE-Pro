@@ -28,6 +28,7 @@ class LeavingCertificateModel {
   DateTime issueDate;
   int copyCount;
   String copyType; // 'Original' or 'Duplicate'
+  bool isIssued;
 
   LeavingCertificateModel({
     required this.id,
@@ -59,6 +60,7 @@ class LeavingCertificateModel {
     required this.issueDate,
     this.copyCount = 1,
     this.copyType = 'Original',
+    this.isIssued = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -92,6 +94,7 @@ class LeavingCertificateModel {
       'issue_date': issueDate.toIso8601String(),
       'copy_count': copyCount,
       'copy_type': copyType,
+      'is_issued': isIssued,
     };
   }
 
@@ -146,6 +149,7 @@ class LeavingCertificateModel {
       issueDate: issueDate,
       copyCount: int.tryParse(json['copy_count']?.toString() ?? '1') ?? 1,
       copyType: json['copy_type']?.toString() ?? 'Original',
+      isIssued: json['is_issued'] == true,
     );
   }
 }

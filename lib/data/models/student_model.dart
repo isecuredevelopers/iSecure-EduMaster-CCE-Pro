@@ -43,6 +43,11 @@ class StudentModel {
   double? weightSem2;
   String? photoUrl;
   bool isPromoted;
+  bool isLeftSchool;
+  DateTime? leavingDate;
+  String? lcNo;
+  String? reasonForLeaving;
+  String? studentPassword;
 
   StudentModel({
     required this.id,
@@ -89,6 +94,11 @@ class StudentModel {
     this.weightSem2,
     this.photoUrl,
     this.isPromoted = false,
+    this.isLeftSchool = false,
+    this.leavingDate,
+    this.lcNo,
+    this.reasonForLeaving,
+    this.studentPassword,
   }) : rollNoSem2 = rollNoSem2 ?? rollNoSem1;
 
   int getRollNo(int semester) => semester == 2 ? rollNoSem2 : rollNoSem1;
@@ -154,6 +164,11 @@ class StudentModel {
       'weight_sem2': weightSem2,
       'photo_url': photoUrl,
       'is_promoted': isPromoted,
+      'is_left_school': isLeftSchool,
+      'leaving_date': leavingDate?.toIso8601String(),
+      'lc_no': lcNo,
+      'reason_for_leaving': reasonForLeaving,
+      'student_password': studentPassword,
     };
   }
 
@@ -210,6 +225,11 @@ class StudentModel {
       weightSem2: double.tryParse(json['weight_sem2']?.toString() ?? json['Weight2']?.toString() ?? ''),
       photoUrl: json['photo_url']?.toString(),
       isPromoted: json['is_promoted'] == true,
+      isLeftSchool: json['is_left_school'] == true || json['IsLeft'] == true || json['is_left'] == true,
+      leavingDate: json['leaving_date'] != null ? DateTime.tryParse(json['leaving_date'].toString()) : null,
+      lcNo: json['lc_no']?.toString(),
+      reasonForLeaving: json['reason_for_leaving']?.toString(),
+      studentPassword: json['student_password']?.toString(),
     );
   }
 }

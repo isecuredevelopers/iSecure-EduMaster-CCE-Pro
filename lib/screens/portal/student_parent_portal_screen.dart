@@ -28,7 +28,12 @@ class _StudentParentPortalScreenState extends State<StudentParentPortalScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<AppStateProvider>();
-      if (widget.initialStudent != null) {
+      if (provider.currentStudent != null) {
+        setState(() {
+          _selectedStudent = provider.currentStudent;
+          _curriculumSelectedStd = provider.currentStudent!.standard;
+        });
+      } else if (widget.initialStudent != null) {
         setState(() {
           _selectedStudent = widget.initialStudent;
           _curriculumSelectedStd = widget.initialStudent!.standard;
@@ -126,13 +131,78 @@ class _StudentParentPortalScreenState extends State<StudentParentPortalScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<AppStateProvider>();
     final students = provider.students;
+    final isStudentUser = (provider.currentUser?.isStudent == true) || provider.currentStudent != null;
 
-    if (_selectedStudent == null && students.isNotEmpty) {
+    if (isStudentUser && provider.currentStudent != null) {
+      _selectedStudent = provider.currentStudent;
+      _curriculumSelectedStd = _selectedStudent!.standard;
+    } else if (_selectedStudent == null && students.isNotEmpty) {
       _selectedStudent = students.first;
       _curriculumSelectedStd = _selectedStudent!.standard;
     }
 
     final student = _selectedStudent;
+
+    // Check if school leaving certificate (L.C.) has been issued to this student
+    if (student != null && provider.isStudentLeftSchool(student)) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('प्रवेश बंद (Access Closed)'),
+          backgroundColor: const Color(0xFFDC2626),
+          foregroundColor: Colors.white,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'लॉगआउट',
+              onPressed: () => provider.logout(),
+            ),
+          ],
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(28.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.school_outlined, size: 64, color: Color(0xFFDC2626)),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'शाळा सोडल्याचा दाखला (L.C.) वितरित केला आहे',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'विद्यार्थी: ${student.studentNameMr} (GR: ${student.grNo})\n'
+                  'या विद्यार्थ्याला शाळा सोडल्याचा दाखला${student.lcNo != null && student.lcNo!.isNotEmpty ? " (L.C. क्र. ${student.lcNo})" : ""} दिल्यामुळे विद्यार्थी पोर्टलचा ॲक्सेस बंद करण्यात आला आहे.\n\n'
+                  'विंडोज सॉफ्टवेअरमध्ये जनरल रजिस्टर नं. १ व दाखल्याचे सर्व शासकीय रेकॉर्ड कायमस्वरूपी सुरक्षित आहेत.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 13.5, color: Color(0xFF475569), height: 1.5),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => provider.logout(),
+                  icon: const Icon(Icons.logout, size: 18),
+                  label: const Text('लॉगआउट करा'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -154,7 +224,8 @@ class _StudentParentPortalScreenState extends State<StudentParentPortalScreen> {
           ],
         ),
         actions: [
-          if (students.isNotEmpty)
+          // Switcher is strictly hidden for logged-in students; only available in admin preview!
+          if (students.isNotEmpty && !isStudentUser)
             TextButton.icon(
               style: TextButton.styleFrom(
                 foregroundColor: Colors.white,
@@ -201,7 +272,7 @@ class _StudentParentPortalScreenState extends State<StudentParentPortalScreen> {
           : Column(
               children: [
                 // Top Student Profile Header Card
-                _buildStudentHeaderCard(student, students),
+                _buildStudentHeaderCard(student, students, isStudentUser),
 
                 // Main Tab Body
                 Expanded(
@@ -271,7 +342,7 @@ class _StudentParentPortalScreenState extends State<StudentParentPortalScreen> {
   // ----------------------------------------------------
   // Top Student Profile Header
   // ----------------------------------------------------
-  Widget _buildStudentHeaderCard(StudentModel student, List<StudentModel> students) {
+  Widget _buildStudentHeaderCard(StudentModel student, List<StudentModel> students, bool isStudentUser) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -350,11 +421,32 @@ class _StudentParentPortalScreenState extends State<StudentParentPortalScreen> {
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Color(0xFF1E88E5)),
-              tooltip: 'विद्यार्थी बदला',
-              onPressed: () => _showStudentSwitcherBottomSheet(students),
-            ),
+            if (!isStudentUser)
+              IconButton(
+                icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Color(0xFF1E88E5)),
+                tooltip: 'विद्यार्थी बदला',
+                onPressed: () => _showStudentSwitcherBottomSheet(students),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock, size: 13, color: Color(0xFF059669)),
+                    SizedBox(width: 4),
+                    Text(
+                      'वैयक्तिक खाते',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

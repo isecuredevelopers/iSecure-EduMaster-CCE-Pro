@@ -89,6 +89,29 @@ class _LeavingCertificateScreenState extends State<LeavingCertificateScreen> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         actions: [
+          // Official Issue LC / Revoke App Access Button
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: ElevatedButton.icon(
+              onPressed: () => _toggleIssueLc(context, state, currentStudent, lc),
+              icon: Icon(
+                state.isStudentLeftSchool(currentStudent) ? Icons.lock_open : Icons.lock_person,
+                size: 18,
+              ),
+              label: Text(
+                state.isStudentLeftSchool(currentStudent)
+                    ? 'दाखला रद्द करा (ॲप चालू करा)'
+                    : 'दाखला वितरित करा (ॲप बंद करा)',
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: state.isStudentLeftSchool(currentStudent)
+                    ? const Color(0xFFDC2626)
+                    : const Color(0xFF059669),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: ElevatedButton.icon(
@@ -457,7 +480,25 @@ class _LeavingCertificateScreenState extends State<LeavingCertificateScreen> {
                                       ),
                                     ],
                                   ),
-                                  if (hasLc) ...[
+                                  if (state.isStudentLeftSchool(stu)) ...[
+                                    const SizedBox(height: 3),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFFEE2E2),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: const Color(0xFFFCA5A5)),
+                                          ),
+                                          child: Text(
+                                            '🔒 शाळा सोडली (LC क्र. ${stu.lcNo ?? ""}) • ॲप बंद',
+                                            style: const TextStyle(fontSize: 9, color: Color(0xFFDC2626), fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ] else if (hasLc) ...[
                                     const SizedBox(height: 3),
                                     Row(
                                       children: [
@@ -496,6 +537,31 @@ class _LeavingCertificateScreenState extends State<LeavingCertificateScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: Column(
                 children: [
+                  // Status Banner if Student has left school (L.C. Issued)
+                  if (state.isStudentLeftSchool(currentStudent))
+                    Container(
+                      width: 850,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                      margin: const EdgeInsets.only(bottom: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFCA5A5)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.lock_person, color: Color(0xFFDC2626), size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'शाळा सोडल्याचा दाखला अधिकृतपणे वितरित करण्यात आला आहे (L.C. क्र. ${lc.lcNo}). या विद्यार्थ्याचा मोबाइल ॲप ॲक्सेस बंद करण्यात आला आहे. सर्व ऐतिहासिक निकाल, गुण व जनरल रजिस्टर नं. १ मधील माहिती विंडोज सॉफ्टवेअरमध्ये कायमस्वरूपी सुरक्षित आहे.',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF991B1B), height: 1.4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   // Top Copy Type Selector Bar (matching PHP .selector-bar)
                   Container(
                     width: 850,
@@ -1351,6 +1417,79 @@ class _LeavingCertificateScreenState extends State<LeavingCertificateScreen> {
         },
       ),
     );
+  }
+
+  void _toggleIssueLc(BuildContext context, AppStateProvider state, StudentModel student, LeavingCertificateModel lc) async {
+    final isLeft = state.isStudentLeftSchool(student);
+    if (!isLeft) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.assignment_turned_in, color: Color(0xFF059669)),
+              SizedBox(width: 8),
+              Text('शाळा सोडल्याचा दाखला वितरित करा'),
+            ],
+          ),
+          content: Text(
+            'तुम्ही खात्रीने "${student.studentNameMr}" (GR: ${student.grNo}) या विद्यार्थ्याला शाळा सोडल्याचा दाखला (L.C. क्र. ${lc.lcNo}) वितरित करत आहात का?\n\n'
+            '• परिणाम: विद्यार्थ्याचा मोबाइल ॲप ॲक्सेस कायमस्वरूपी बंद होईल.\n'
+            '• शासकीय नोंद: विद्यार्थ्याचे सर्व जुने रेकॉर्ड, निकाल पत्रके व जनरल रजिस्टर नं. १ मधील सर्व माहिती विंडोज सॉफ्टवेअरमध्ये कायमस्वरूपी सुरक्षित राहील.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('रद्द करा'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('होय, दाखला वितरित करा'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true && context.mounted) {
+        await state.issueLeavingCertificate(student, lc);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('दाखला यशस्वीरित्या वितरित झाला! विद्यार्थ्याचा मोबाइल ॲप ॲक्सेस बंद करण्यात आला आहे.'),
+            backgroundColor: Color(0xFF059669),
+          ),
+        );
+      }
+    } else {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('दाखला वितरण रद्द करा'),
+          content: Text('तुम्ही खात्रीने "${student.studentNameMr}" या विद्यार्थ्याचा शाळा सोडल्याचा दाखला रद्द करून नियमित विद्यार्थी म्हणून पुन्हा ॲप ॲक्सेस चालू करू इच्छिता का?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('रद्द करा')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
+              child: const Text('होय, पूर्ववत करा'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true && context.mounted) {
+        await state.cancelLeavingCertificate(student);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('विद्यार्थी पूर्ववत नियमित करण्यात आला आहे व ॲप ॲक्सेस पुन्हा चालू झाला आहे.'),
+            backgroundColor: Color(0xFF2563EB),
+          ),
+        );
+      }
+    }
   }
 
   // Exact HTML Browser Print (Generating exact dakhla-print.php HTML file)

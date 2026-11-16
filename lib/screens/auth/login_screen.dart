@@ -15,24 +15,20 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _studentGrCtrl = TextEditingController();
+  final _studentPassCtrl = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureStudentPass = true;
   bool _isLoading = false;
   String? _errorMessage;
   String _selectedRole = AppRole.teacher;
+  bool _isStudentLoginMode = false;
 
   bool get _showRoleSelection =>
       _usernameCtrl.text.trim().isNotEmpty && _passwordCtrl.text.isNotEmpty;
 
-  // 5 roles in user-specified order
+  // 5 Staff roles in user-specified order
   static const List<Map<String, dynamic>> roleOptions = [
-    {
-      'role': AppRole.student,
-      'title': 'Student / Palak (विद्यार्थी व पालक)',
-      'sub': 'हजेरी, स्वाध्याय, ऑनलाइन परीक्षा व ई-लर्निंग अभ्यासक्रम',
-      'icon': Icons.school_outlined,
-      'color': Color(0xFF0284C7),
-      'bg': Color(0xFFF0F9FF),
-    },
     {
       'role': AppRole.teacher,
       'title': 'Vargshikshak (वर्गशिक्षक)',
@@ -80,6 +76,16 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _usernameCtrl.addListener(_onCredentialsChanged);
     _passwordCtrl.addListener(_onCredentialsChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final isMobile = MediaQuery.of(context).size.width < 800;
+        if (isMobile) {
+          setState(() {
+            _isStudentLoginMode = true;
+          });
+        }
+      }
+    });
   }
 
   void _onCredentialsChanged() {
@@ -130,13 +136,6 @@ class _LoginScreenState extends State<LoginScreen> {
           });
           return;
         }
-      } else if (u == 'student' || u == 'palak' || u.startsWith('student')) {
-        if (_selectedRole != AppRole.student) {
-          setState(() {
-            _selectedRole = AppRole.student;
-          });
-          return;
-        }
       }
     }
     setState(() {});
@@ -148,7 +147,34 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordCtrl.removeListener(_onCredentialsChanged);
     _usernameCtrl.dispose();
     _passwordCtrl.dispose();
+    _studentGrCtrl.dispose();
+    _studentPassCtrl.dispose();
     super.dispose();
+  }
+
+  void _handleStudentLogin(AppStateProvider state) async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final identifier = _studentGrCtrl.text.trim();
+    final password = _studentPassCtrl.text.trim();
+
+    final result = await state.loginStudent(identifier, password);
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (result['success'] != true) {
+        setState(() {
+          _errorMessage = result['message'] as String? ?? 'लॉगिन अयशस्वी झाले.';
+        });
+      }
+    }
   }
 
   void _handleLogin() async {
@@ -585,23 +611,27 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'प्रणालीमध्ये प्रवेश करा (Sign In)',
-                      style: TextStyle(
+                      _isStudentLoginMode
+                          ? 'विद्यार्थी व पालक लॉगिन'
+                          : 'प्रणालीमध्ये प्रवेश करा (Sign In)',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF0F172A),
                         letterSpacing: -0.2,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
-                      'आपल्या अधिकृत खात्याचे तपशील प्रविष्ट करा',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      _isStudentLoginMode
+                          ? 'विद्यार्थी वैयक्तिक खात्यात थेट प्रवेश करा'
+                          : 'आपल्या अधिकृत खात्याचे तपशील प्रविष्ट करा',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -628,6 +658,119 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+
+          // Portal / Staff Mode Switcher Tabs
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            padding: const EdgeInsets.all(3),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _isStudentLoginMode = true;
+                        _errorMessage = null;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 7),
+                      decoration: BoxDecoration(
+                        color: _isStudentLoginMode ? const Color(0xFF0284C7) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: _isStudentLoginMode
+                            ? [
+                                BoxShadow(
+                                  color: const Color(0xFF0284C7).withOpacity(0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.school,
+                            size: 15,
+                            color: _isStudentLoginMode ? Colors.white : const Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              'विद्यार्थी व पालक',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: _isStudentLoginMode ? Colors.white : const Color(0xFF64748B),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _isStudentLoginMode = false;
+                        _errorMessage = null;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 7),
+                      decoration: BoxDecoration(
+                        color: !_isStudentLoginMode ? const Color(0xFF2563EB) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: !_isStudentLoginMode
+                            ? [
+                                BoxShadow(
+                                  color: const Color(0xFF2563EB).withOpacity(0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.admin_panel_settings,
+                            size: 15,
+                            color: !_isStudentLoginMode ? Colors.white : const Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              'शिक्षक व कर्मचारी',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: !_isStudentLoginMode ? Colors.white : const Color(0xFF64748B),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
 
@@ -660,134 +803,278 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 10),
           ],
 
-          // Username Field
-          const Text(
-            'वापरकर्ता नाव (Username / Login ID)',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
-          ),
-          const SizedBox(height: 4),
-          TextFormField(
-            controller: _usernameCtrl,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-            decoration: InputDecoration(
-              hintText: 'उदा. isecure, superadmin, admin, teacher1, student',
-              hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.normal),
-              prefixIcon: const Icon(Icons.person_outline, size: 18, color: Color(0xFF2563EB)),
-              filled: true,
-              fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              isDense: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.6),
-              ),
+          if (_isStudentLoginMode) ...[
+            // Student Login Form - ZERO ROLES SHOWN
+            const Text(
+              'जनरल रजिस्टर नंबर (GR No.) / सरल आयडी',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
             ),
-            validator: (v) => v == null || v.trim().isEmpty ? 'कृपया वापरकर्ता नाव प्रविष्ट करा' : null,
-          ),
-          const SizedBox(height: 8),
-
-          // Password Field
-          const Text(
-            'पासवर्ड (Password)',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
-          ),
-          const SizedBox(height: 4),
-          TextFormField(
-            controller: _passwordCtrl,
-            obscureText: _obscurePassword,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-            decoration: InputDecoration(
-              hintText: 'आपला गुप्त पासवर्ड प्रविष्ट करा',
-              hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.normal),
-              prefixIcon: const Icon(Icons.lock_outline, size: 18, color: Color(0xFF2563EB)),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                  size: 18,
-                  color: const Color(0xFF64748B),
+            const SizedBox(height: 4),
+            TextFormField(
+              controller: _studentGrCtrl,
+              keyboardType: TextInputType.text,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+              decoration: InputDecoration(
+                hintText: 'उदा. 780, 101 किंवा सरल आयडी',
+                hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.normal),
+                prefixIcon: const Icon(Icons.badge_outlined, size: 18, color: Color(0xFF0284C7)),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
                 ),
-                tooltip: _obscurePassword ? 'पासवर्ड दाखवा' : 'पासवर्ड लपवा',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () {
-                  setState(() => _obscurePassword = !_obscurePassword);
-                },
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF0284C7), width: 1.6),
+                ),
               ),
-              filled: true,
-              fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              isDense: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.6),
-              ),
+              validator: (v) => v == null || v.trim().isEmpty ? 'कृपया GR नंबर प्रविष्ट करा' : null,
             ),
-            validator: (v) => v == null || v.trim().isEmpty ? 'कृपया पासवर्ड प्रविष्ट करा' : null,
-            onFieldSubmitted: (_) => _handleLogin(),
-          ),
+            const SizedBox(height: 8),
 
-          // Dynamic 5-Role Selection List
-          AnimatedCrossFade(
-            firstChild: const SizedBox(height: 4),
-            secondChild: Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 2),
-              child: _buildRoleSelectionList(),
+            const Text(
+              'पासवर्ड किंवा जन्मतारीख (Password / DOB)',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
             ),
-            crossFadeState: _showRoleSelection
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 200),
-          ),
-          const SizedBox(height: 12),
-
-          // Submit Button
-          SizedBox(
-            width: double.infinity,
-            height: 40,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _handleLogin,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0D6EFD),
-                foregroundColor: Colors.white,
-                elevation: 2,
-                shadowColor: const Color(0xFF0D6EFD).withOpacity(0.35),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            const SizedBox(height: 4),
+            TextFormField(
+              controller: _studentPassCtrl,
+              obscureText: _obscureStudentPass,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+              decoration: InputDecoration(
+                hintText: 'जन्मतारीख (उदा. 15082015) किंवा पासवर्ड',
+                hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.normal),
+                prefixIcon: const Icon(Icons.lock_outline, size: 18, color: Color(0xFF0284C7)),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureStudentPass ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    size: 18,
+                    color: const Color(0xFF64748B),
+                  ),
+                  tooltip: _obscureStudentPass ? 'पासवर्ड दाखवा' : 'पासवर्ड लपवा',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    setState(() => _obscureStudentPass = !_obscureStudentPass);
+                  },
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF0284C7), width: 1.6),
+                ),
               ),
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                    )
-                  : const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.login, size: 17),
-                        SizedBox(width: 8),
-                        Text(
-                          'लॉगिन करा (Sign In)',
-                          style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, letterSpacing: 0.2),
-                        ),
-                      ],
+              validator: (v) => v == null || v.trim().isEmpty ? 'कृपया पासवर्ड किंवा जन्मतारीख प्रविष्ट करा' : null,
+              onFieldSubmitted: (_) => _handleStudentLogin(state),
+            ),
+            const SizedBox(height: 8),
+
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F9FF),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFBAE6FD)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, size: 15, color: Color(0xFF0284C7)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'प्रत्येक विद्यार्थ्याचे स्वतंत्र वैयक्तिक खाते आहे. पहिल्यांदा लॉगिन करताना जन्मतारीख (उदा. 15082015) किंवा "123" वापरा.',
+                      style: TextStyle(fontSize: 10.5, color: Color(0xFF0369A1), height: 1.35),
                     ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 12),
+
+            // Student Submit Button
+            SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : () => _handleStudentLogin(state),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0284C7),
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shadowColor: const Color(0xFF0284C7).withOpacity(0.35),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.school, size: 17),
+                          SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              'विद्यार्थी पोर्टलमध्ये प्रवेश करा',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.2),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ] else ...[
+            // Staff Login Form (Teachers, HM, Peon, Admin, Superadmin)
+            const Text(
+              'वापरकर्ता नाव (Username / Login ID)',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+            ),
+            const SizedBox(height: 4),
+            TextFormField(
+              controller: _usernameCtrl,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+              decoration: InputDecoration(
+                hintText: 'उदा. isecure, superadmin, admin, teacher1',
+                hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.normal),
+                prefixIcon: const Icon(Icons.person_outline, size: 18, color: Color(0xFF2563EB)),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.6),
+                ),
+              ),
+              validator: (v) => v == null || v.trim().isEmpty ? 'कृपया वापरकर्ता नाव प्रविष्ट करा' : null,
+            ),
+            const SizedBox(height: 8),
+
+            // Password Field
+            const Text(
+              'पासवर्ड (Password)',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+            ),
+            const SizedBox(height: 4),
+            TextFormField(
+              controller: _passwordCtrl,
+              obscureText: _obscurePassword,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+              decoration: InputDecoration(
+                hintText: 'आपला गुप्त पासवर्ड प्रविष्ट करा',
+                hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.normal),
+                prefixIcon: const Icon(Icons.lock_outline, size: 18, color: Color(0xFF2563EB)),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    size: 18,
+                    color: const Color(0xFF64748B),
+                  ),
+                  tooltip: _obscurePassword ? 'पासवर्ड दाखवा' : 'पासवर्ड लपवा',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    setState(() => _obscurePassword = !_obscurePassword);
+                  },
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.6),
+                ),
+              ),
+              validator: (v) => v == null || v.trim().isEmpty ? 'कृपया पासवर्ड प्रविष्ट करा' : null,
+              onFieldSubmitted: (_) => _handleLogin(),
+            ),
+
+            // Dynamic 5-Role Selection List (Only for staff!)
+            AnimatedCrossFade(
+              firstChild: const SizedBox(height: 4),
+              secondChild: Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 2),
+                child: _buildRoleSelectionList(),
+              ),
+              crossFadeState: _showRoleSelection
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 200),
+            ),
+            const SizedBox(height: 12),
+
+            // Submit Button
+            SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _handleLogin,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0D6EFD),
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shadowColor: const Color(0xFF0D6EFD).withOpacity(0.35),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.login, size: 17),
+                          SizedBox(width: 8),
+                          Text(
+                            'लॉगिन करा (Sign In)',
+                            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, letterSpacing: 0.2),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
 
           // Divider with "किंवा"
@@ -822,7 +1109,7 @@ class _LoginScreenState extends State<LoginScreen> {
               },
               icon: const Icon(Icons.school, size: 17, color: Color(0xFF1E88E5)),
               label: const Text(
-                'विद्यार्थी व पालक पोर्टल (Student & Parent App) 📱',
+                'विद्यार्थी व पालक पोर्टल (थेट पूर्वावलोकन) 📱',
                 style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
               ),
             ),
