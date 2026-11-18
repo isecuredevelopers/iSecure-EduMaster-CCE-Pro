@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/curriculum_model.dart';
 import '../../data/models/online_exam_model.dart';
 import '../../data/models/student_model.dart';
+import 'ebook_viewer_screen.dart';
 import 'exam_player_screen.dart';
 
 class ChapterDetailScreen extends StatefulWidget {
@@ -56,6 +57,31 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> with SingleTi
         ),
         backgroundColor: themeColor,
         foregroundColor: Colors.white,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: TextButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EbookViewerScreen(subject: widget.subject),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.picture_as_pdf, color: Colors.white, size: 18),
+              label: const Text(
+                'ई-बुक (PDF)',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.5),
+              ),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.white.withOpacity(0.18),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
@@ -139,6 +165,40 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> with SingleTi
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: themeColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                EbookViewerScreen(subject: widget.subject),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.picture_as_pdf, size: 16),
+                      label: Text(
+                        'अधिकृत ई-पुस्तक उघडा (${widget.subject.ebookSizeLabel.isNotEmpty ? widget.subject.ebookSizeLabel : "PDF"})',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],

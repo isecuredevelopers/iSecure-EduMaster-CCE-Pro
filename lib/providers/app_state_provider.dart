@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -92,7 +93,10 @@ class AppStateProvider extends ChangeNotifier {
   bool _isLoading = true;
 
   AppUpdateInfo? _availableUpdate;
+  AppUpdateInfo? _automaticUpdatePrompt;
   bool _isCheckingUpdate = false;
+  Timer? _updateCheckTimer;
+  bool _isDisposed = false;
 
   // Getters
   SchoolModel get school => _school;
@@ -117,6 +121,7 @@ class AppStateProvider extends ChangeNotifier {
   bool get isCloudConnected => _isCloudConnected;
   bool get isLoading => _isLoading;
   AppUpdateInfo? get availableUpdate => _availableUpdate;
+  AppUpdateInfo? get automaticUpdatePrompt => _automaticUpdatePrompt;
   bool get isCheckingUpdate => _isCheckingUpdate;
 
   // User Auth Getters
@@ -135,8 +140,10 @@ class AppStateProvider extends ChangeNotifier {
   List<MdmStockItemModel> get mdmStockList => _mdmStockList;
   List<MdmMonthlyBillModel> get mdmBillsList => _mdmBillsList;
 
-  List<TextbookDistributionRecord> get textbookDistributions => _textbookDistributions;
-  List<UniformDistributionRecord> get uniformDistributions => _uniformDistributions;
+  List<TextbookDistributionRecord> get textbookDistributions =>
+      _textbookDistributions;
+  List<UniformDistributionRecord> get uniformDistributions =>
+      _uniformDistributions;
 
   List<SmcMemberModel> get smcMembers => _smcMembers;
   List<SmcMeetingModel> get smcMeetings => _smcMeetings;
@@ -153,7 +160,11 @@ class AppStateProvider extends ChangeNotifier {
 
   List<HomeworkModel> getHomeworkForStudent(StudentModel student) {
     return _homeworkList
-        .where((h) => h.standard == student.standard && (h.division == student.division || h.division.isEmpty))
+        .where(
+          (h) =>
+              h.standard == student.standard &&
+              (h.division == student.division || h.division.isEmpty),
+        )
         .toList()
       ..sort((a, b) => b.assignedDate.compareTo(a.assignedDate));
   }
@@ -185,9 +196,13 @@ class AppStateProvider extends ChangeNotifier {
       ),
     );
 
-    final totalWorkingDays = _workingDays.grandTotal > 0 ? _workingDays.grandTotal : 230;
+    final totalWorkingDays = _workingDays.grandTotal > 0
+        ? _workingDays.grandTotal
+        : 230;
     final totalAttendedDays = att.grandTotal;
-    final percentage = totalWorkingDays > 0 ? (totalAttendedDays / totalWorkingDays) * 100 : 0.0;
+    final percentage = totalWorkingDays > 0
+        ? (totalAttendedDays / totalWorkingDays) * 100
+        : 0.0;
 
     final monthlyBreakdown = [
       {'month': 'जून', 'present': att.jun, 'total': _workingDays.jun},
@@ -236,12 +251,16 @@ class AppStateProvider extends ChangeNotifier {
   List<SubjectModel> get currentStdSubjects =>
       _subjects.where((s) => s.isApplicableForStd(_selectedStd)).toList();
 
-  List<StudentModel> get filteredStudents => _students.where((s) {
+  List<StudentModel> get filteredStudents =>
+      _students.where((s) {
         return s.standard == _selectedStd &&
             s.division == _selectedDiv &&
             s.academicYearId == _currentYear.id;
-      }).toList()
-        ..sort((a, b) => a.getRollNo(_selectedSemester).compareTo(b.getRollNo(_selectedSemester)));
+      }).toList()..sort(
+        (a, b) => a
+            .getRollNo(_selectedSemester)
+            .compareTo(b.getRollNo(_selectedSemester)),
+      );
 
   AppStateProvider() {
     _ensureDefaultUsers();
@@ -254,7 +273,10 @@ class AppStateProvider extends ChangeNotifier {
 
     _school = SampleData.defaultSchool;
     _academicYears = SampleData.defaultYears;
-    _currentYear = _academicYears.firstWhere((y) => y.isActive, orElse: () => _academicYears.first);
+    _currentYear = _academicYears.firstWhere(
+      (y) => y.isActive,
+      orElse: () => _academicYears.first,
+    );
     _ensureHistoricalYears();
     _subjects = SampleData.defaultSubjects;
     _selectedSubject = _subjects.first;
@@ -298,23 +320,42 @@ class AppStateProvider extends ChangeNotifier {
     // Check online update from GitHub in background
     if (!kIsWeb && !Platform.environment.containsKey('FLUTTER_TEST')) {
       Future.delayed(const Duration(seconds: 3), () {
+        if (_isDisposed) return;
         checkForUpdate(silent: true);
+        _updateCheckTimer = Timer.periodic(const Duration(hours: 6), (_) {
+          if (!_isDisposed && !_isCheckingUpdate) {
+            checkForUpdate(silent: true);
+          }
+        });
       });
     }
   }
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _updateCheckTimer?.cancel();
+    super.dispose();
+  }
+
   // Online GitHub Auto-Update Check
   Future<AppUpdateInfo?> checkForUpdate({bool silent = false}) async {
+    _automaticUpdatePrompt = null;
     _isCheckingUpdate = true;
     notifyListeners();
     try {
       final info = await AppUpdateService.checkForUpdate();
+      if (_isDisposed) return info;
       _availableUpdate = info;
+      _automaticUpdatePrompt = silent && (info?.hasUpdate ?? false)
+          ? info
+          : null;
       _isCheckingUpdate = false;
       notifyListeners();
       return info;
     } catch (e) {
       debugPrint('Check for update error: $e');
+      if (_isDisposed) return null;
       _isCheckingUpdate = false;
       notifyListeners();
       return null;
@@ -324,7 +365,8 @@ class AppStateProvider extends ChangeNotifier {
   // Setters & Actions
   void setStandard(int std) {
     _selectedStd = std;
-    if (!availableDivisions.contains(_selectedDiv) && availableDivisions.isNotEmpty) {
+    if (!availableDivisions.contains(_selectedDiv) &&
+        availableDivisions.isNotEmpty) {
       _selectedDiv = availableDivisions.first;
     }
     final stdSubs = currentStdSubjects;
@@ -367,49 +409,58 @@ class AppStateProvider extends ChangeNotifier {
     final curStudents = filteredStudents;
     for (var stu in curStudents) {
       // Ensure evaluation record exists
-      final evalExists = _evaluations.any((e) =>
-          e.studentId == stu.id &&
-          e.semester == _selectedSemester &&
-          e.subjectCode == _selectedSubject.subjectCode);
+      final evalExists = _evaluations.any(
+        (e) =>
+            e.studentId == stu.id &&
+            e.semester == _selectedSemester &&
+            e.subjectCode == _selectedSubject.subjectCode,
+      );
       if (!evalExists) {
-        _evaluations.add(EvaluationModel(
-          id: '${stu.id}_${_selectedSemester}_${_selectedSubject.subjectCode}',
-          schoolId: _school.id,
-          academicYearId: _currentYear.id,
-          studentId: stu.id,
-          standard: _selectedStd,
-          division: _selectedDiv,
-          semester: _selectedSemester,
-          subjectCode: _selectedSubject.subjectCode,
-        ));
+        _evaluations.add(
+          EvaluationModel(
+            id: '${stu.id}_${_selectedSemester}_${_selectedSubject.subjectCode}',
+            schoolId: _school.id,
+            academicYearId: _currentYear.id,
+            studentId: stu.id,
+            standard: _selectedStd,
+            division: _selectedDiv,
+            semester: _selectedSemester,
+            subjectCode: _selectedSubject.subjectCode,
+          ),
+        );
       }
 
       // Ensure descriptive note exists
-      final noteExists = _descriptiveNotes.any((n) =>
-          n.studentId == stu.id && n.semester == _selectedSemester);
+      final noteExists = _descriptiveNotes.any(
+        (n) => n.studentId == stu.id && n.semester == _selectedSemester,
+      );
       if (!noteExists) {
-        _descriptiveNotes.add(DescriptiveNoteModel(
-          id: 'note_${stu.id}_$_selectedSemester',
-          schoolId: _school.id,
-          academicYearId: _currentYear.id,
-          studentId: stu.id,
-          standard: _selectedStd,
-          division: _selectedDiv,
-          semester: _selectedSemester,
-        ));
+        _descriptiveNotes.add(
+          DescriptiveNoteModel(
+            id: 'note_${stu.id}_$_selectedSemester',
+            schoolId: _school.id,
+            academicYearId: _currentYear.id,
+            studentId: stu.id,
+            standard: _selectedStd,
+            division: _selectedDiv,
+            semester: _selectedSemester,
+          ),
+        );
       }
 
       // Ensure attendance exists
       final attExists = _attendanceList.any((a) => a.studentId == stu.id);
       if (!attExists) {
-        _attendanceList.add(AttendanceModel(
-          id: 'att_${stu.id}',
-          schoolId: _school.id,
-          academicYearId: _currentYear.id,
-          studentId: stu.id,
-          standard: _selectedStd,
-          division: _selectedDiv,
-        ));
+        _attendanceList.add(
+          AttendanceModel(
+            id: 'att_${stu.id}',
+            schoolId: _school.id,
+            academicYearId: _currentYear.id,
+            studentId: stu.id,
+            standard: _selectedStd,
+            division: _selectedDiv,
+          ),
+        );
       }
     }
   }
@@ -427,58 +478,72 @@ class AppStateProvider extends ChangeNotifier {
   // Student Operations
   void _ensureRecordsForStudent(StudentModel stu) {
     // Applicable subjects for this student's standard
-    final stdSubs = _subjects.where((s) => s.isApplicableForStd(stu.standard)).toList();
+    final stdSubs = _subjects
+        .where((s) => s.isApplicableForStd(stu.standard))
+        .toList();
     for (var sub in stdSubs) {
       for (int sem = 1; sem <= 2; sem++) {
-        final evalExists = _evaluations.any((e) =>
-            e.studentId == stu.id &&
-            e.semester == sem &&
-            e.subjectCode == sub.subjectCode);
+        final evalExists = _evaluations.any(
+          (e) =>
+              e.studentId == stu.id &&
+              e.semester == sem &&
+              e.subjectCode == sub.subjectCode,
+        );
         if (!evalExists) {
-          _evaluations.add(EvaluationModel(
-            id: '${stu.id}_${sem}_${sub.subjectCode}',
+          _evaluations.add(
+            EvaluationModel(
+              id: '${stu.id}_${sem}_${sub.subjectCode}',
+              schoolId: _school.id,
+              academicYearId: _currentYear.id,
+              studentId: stu.id,
+              standard: stu.standard,
+              division: stu.division,
+              semester: sem,
+              subjectCode: sub.subjectCode,
+            ),
+          );
+        }
+      }
+    }
+
+    for (int sem = 1; sem <= 2; sem++) {
+      final noteExists = _descriptiveNotes.any(
+        (n) => n.studentId == stu.id && n.semester == sem,
+      );
+      if (!noteExists) {
+        _descriptiveNotes.add(
+          DescriptiveNoteModel(
+            id: 'note_${stu.id}_$sem',
             schoolId: _school.id,
             academicYearId: _currentYear.id,
             studentId: stu.id,
             standard: stu.standard,
             division: stu.division,
             semester: sem,
-            subjectCode: sub.subjectCode,
-          ));
-        }
-      }
-    }
-
-    for (int sem = 1; sem <= 2; sem++) {
-      final noteExists = _descriptiveNotes.any((n) =>
-          n.studentId == stu.id && n.semester == sem);
-      if (!noteExists) {
-        _descriptiveNotes.add(DescriptiveNoteModel(
-          id: 'note_${stu.id}_$sem',
-          schoolId: _school.id,
-          academicYearId: _currentYear.id,
-          studentId: stu.id,
-          standard: stu.standard,
-          division: stu.division,
-          semester: sem,
-        ));
+          ),
+        );
       }
     }
 
     final attExists = _attendanceList.any((a) => a.studentId == stu.id);
     if (!attExists) {
-      _attendanceList.add(AttendanceModel(
-        id: 'att_${stu.id}',
-        schoolId: _school.id,
-        academicYearId: _currentYear.id,
-        studentId: stu.id,
-        standard: stu.standard,
-        division: stu.division,
-      ));
+      _attendanceList.add(
+        AttendanceModel(
+          id: 'att_${stu.id}',
+          schoolId: _school.id,
+          academicYearId: _currentYear.id,
+          studentId: stu.id,
+          standard: stu.standard,
+          division: stu.division,
+        ),
+      );
     }
   }
 
-  Future<void> addOrUpdateStudent(StudentModel stu, {bool switchToStudentClass = true}) async {
+  Future<void> addOrUpdateStudent(
+    StudentModel stu, {
+    bool switchToStudentClass = true,
+  }) async {
     final idx = _students.indexWhere((s) => s.id == stu.id);
     if (idx >= 0) {
       _students[idx] = stu;
@@ -510,9 +575,16 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   // Evaluation Operations
-  EvaluationModel getOrCreateEvaluation(String studentId, int sem, String subjectCode) {
+  EvaluationModel getOrCreateEvaluation(
+    String studentId,
+    int sem,
+    String subjectCode,
+  ) {
     final found = _evaluations.firstWhere(
-      (e) => e.studentId == studentId && e.semester == sem && e.subjectCode == subjectCode,
+      (e) =>
+          e.studentId == studentId &&
+          e.semester == sem &&
+          e.subjectCode == subjectCode,
       orElse: () {
         final newEval = EvaluationModel(
           id: '${studentId}_${sem}_$subjectCode',
@@ -614,7 +686,9 @@ class AppStateProvider extends ChangeNotifier {
 
   // Leaving Certificate (शाळा सोडल्याचा दाखला) Operations
   LeavingCertificateModel getOrCreateLeavingCertificate(StudentModel student) {
-    final idx = _leavingCertificates.indexWhere((l) => l.studentId == student.id);
+    final idx = _leavingCertificates.indexWhere(
+      (l) => l.studentId == student.id,
+    );
     if (idx >= 0) {
       return _leavingCertificates[idx];
     }
@@ -636,8 +710,12 @@ class AppStateProvider extends ChangeNotifier {
       uidNo: student.aadhaarNo,
       studentName: student.studentNameMr,
       motherName: student.motherName,
-      nationality: student.nationality.isNotEmpty ? student.nationality : 'भारतीय',
-      motherTongue: student.motherTongue.isNotEmpty ? student.motherTongue : 'मराठी',
+      nationality: student.nationality.isNotEmpty
+          ? student.nationality
+          : 'भारतीय',
+      motherTongue: student.motherTongue.isNotEmpty
+          ? student.motherTongue
+          : 'मराठी',
       religion: student.religion,
       caste: student.caste,
       subCaste: student.subCaste,
@@ -652,7 +730,8 @@ class AppStateProvider extends ChangeNotifier {
       progress: 'चांगली',
       conduct: 'चांगली',
       leavingDate: DateTime.now(),
-      currentClass: 'इयत्ता ${MarathiDateFormatter.classToMarathi(student.standard)}',
+      currentClass:
+          'इयत्ता ${MarathiDateFormatter.classToMarathi(student.standard)}',
       reasonForLeaving: 'पुढील शिक्षणासाठी',
       remarks: student.remarks,
       issueDate: DateTime.now(),
@@ -695,14 +774,19 @@ class AppStateProvider extends ChangeNotifier {
   /// Check whether student has left school (शाळा सोडल्याचा दाखला दिला आहे का)
   bool isStudentLeftSchool(StudentModel student) {
     if (student.isLeftSchool) return true;
-    final lc = _leavingCertificates.where((l) => l.studentId == student.id).firstOrNull;
+    final lc = _leavingCertificates
+        .where((l) => l.studentId == student.id)
+        .firstOrNull;
     if (lc != null && lc.isIssued) return true;
     return false;
   }
 
   /// Officially issue School Leaving Certificate (L.C.) and close mobile app access
   /// (विंडोज सॉफ्टवेअरमध्ये सर्व रेकॉर्ड्स, मार्कशीट, जनरल रजिस्टर कायमस्वरूपी सुरक्षित राहतात)
-  Future<void> issueLeavingCertificate(StudentModel student, LeavingCertificateModel lc) async {
+  Future<void> issueLeavingCertificate(
+    StudentModel student,
+    LeavingCertificateModel lc,
+  ) async {
     lc.isIssued = true;
     student.isLeftSchool = true;
     student.leavingDate = lc.leavingDate;
@@ -713,7 +797,8 @@ class AppStateProvider extends ChangeNotifier {
     await addOrUpdateStudent(student, switchToStudentClass: false);
 
     // If currently logged-in student is this student, immediately revoke session
-    if (_currentStudent?.id == student.id || _currentUser?.username == student.grNo) {
+    if (_currentStudent?.id == student.id ||
+        _currentUser?.username == student.grNo) {
       await logout();
     }
   }
@@ -721,7 +806,9 @@ class AppStateProvider extends ChangeNotifier {
   /// Cancel issued LC in case of administrative correction
   Future<void> cancelLeavingCertificate(StudentModel student) async {
     student.isLeftSchool = false;
-    final lcIdx = _leavingCertificates.indexWhere((l) => l.studentId == student.id);
+    final lcIdx = _leavingCertificates.indexWhere(
+      (l) => l.studentId == student.id,
+    );
     if (lcIdx >= 0) {
       _leavingCertificates[lcIdx].isIssued = false;
       await saveLeavingCertificate(_leavingCertificates[lcIdx]);
@@ -737,8 +824,12 @@ class AppStateProvider extends ChangeNotifier {
     }
 
     // Check if LC exists for this student to prefill leaving details
-    final lcIdx = _leavingCertificates.indexWhere((l) => l.studentId == student.id);
-    final LeavingCertificateModel? lc = lcIdx >= 0 ? _leavingCertificates[lcIdx] : null;
+    final lcIdx = _leavingCertificates.indexWhere(
+      (l) => l.studentId == student.id,
+    );
+    final LeavingCertificateModel? lc = lcIdx >= 0
+        ? _leavingCertificates[lcIdx]
+        : null;
 
     final addressParts = [
       student.birthPlace,
@@ -762,12 +853,17 @@ class AppStateProvider extends ChangeNotifier {
           : MarathiDateFormatter.toMarathiWords(student.dateOfBirth),
       previousSchool: student.previousSchool,
       admissionDate: student.admissionDate ?? student.dateOfBirth,
-      admissionClass: lc?.admissionClass ?? MarathiDateFormatter.classToMarathi(student.standard),
+      admissionClass:
+          lc?.admissionClass ??
+          MarathiDateFormatter.classToMarathi(student.standard),
       progress: lc?.progress ?? 'चांगली',
       conduct: lc?.conduct ?? 'चांगली',
       leavingDate: lc?.leavingDate,
-      currentClass: lc?.currentClass ?? 'इयत्ता ${MarathiDateFormatter.classToMarathi(student.standard)}',
-      reasonForLeaving: lc?.reasonForLeaving ?? (lc != null ? 'पुढील शिक्षणासाठी' : '-'),
+      currentClass:
+          lc?.currentClass ??
+          'इयत्ता ${MarathiDateFormatter.classToMarathi(student.standard)}',
+      reasonForLeaving:
+          lc?.reasonForLeaving ?? (lc != null ? 'पुढील शिक्षणासाठी' : '-'),
       remarks: lc?.remarks ?? student.remarks,
       issueDate: DateTime.now(),
       copyType: 'Original',
@@ -790,7 +886,10 @@ class AppStateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateGrExtractCopyType(GeneralRegisterExtractModel extract, String type) async {
+  Future<void> updateGrExtractCopyType(
+    GeneralRegisterExtractModel extract,
+    String type,
+  ) async {
     extract.copyType = type;
     await saveGrExtract(extract);
   }
@@ -826,8 +925,12 @@ class AppStateProvider extends ChangeNotifier {
 
     // Ensure 2025-26 is active
     final curStart = int.tryParse(_currentYear.yearName.split('-').first) ?? 0;
-    if (curStart > 2025 || !_academicYears.any((y) => y.id == _currentYear.id)) {
-      _currentYear = _academicYears.firstWhere((y) => y.yearName == '2025-26', orElse: () => _academicYears.first);
+    if (curStart > 2025 ||
+        !_academicYears.any((y) => y.id == _currentYear.id)) {
+      _currentYear = _academicYears.firstWhere(
+        (y) => y.yearName == '2025-26',
+        orElse: () => _academicYears.first,
+      );
       for (var y in _academicYears) {
         y.isActive = (y.id == _currentYear.id);
       }
@@ -850,7 +953,8 @@ class AppStateProvider extends ChangeNotifier {
 
   Future<void> addNewAcademicYear(String yearName) async {
     if (yearName.trim().isEmpty) return;
-    final newId = 'year-${yearName.replaceAll(' ', '').replaceAll('/', '-')}_${DateTime.now().millisecondsSinceEpoch}';
+    final newId =
+        'year-${yearName.replaceAll(' ', '').replaceAll('/', '-')}_${DateTime.now().millisecondsSinceEpoch}';
     final newYear = AcademicYearModel(
       id: newId,
       schoolId: _school.id,
@@ -865,7 +969,11 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   // Subject Weightage Update
-  Future<void> updateSubjectWeightage(String subjectCode, int formativeMax, int summativeMax) async {
+  Future<void> updateSubjectWeightage(
+    String subjectCode,
+    int formativeMax,
+    int summativeMax,
+  ) async {
     final idx = _subjects.indexWhere((s) => s.subjectCode == subjectCode);
     if (idx >= 0) {
       _subjects[idx].formativeMax = formativeMax;
@@ -876,7 +984,11 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   // Grading Scales Update
-  Future<void> updateGradingScale(String gradeId, double minMarks, double maxMarks) async {
+  Future<void> updateGradingScale(
+    String gradeId,
+    double minMarks,
+    double maxMarks,
+  ) async {
     final idx = _gradingScales.indexWhere((g) => g.id == gradeId);
     if (idx >= 0) {
       _gradingScales[idx].minMarks = minMarks;
@@ -922,7 +1034,9 @@ class AppStateProvider extends ChangeNotifier {
       }
       if (data.containsKey('descriptive_notes')) {
         final List list = data['descriptive_notes'];
-        _descriptiveNotes = list.map((e) => DescriptiveNoteModel.fromJson(e)).toList();
+        _descriptiveNotes = list
+            .map((e) => DescriptiveNoteModel.fromJson(e))
+            .toList();
       }
       if (data.containsKey('attendance')) {
         final List list = data['attendance'];
@@ -933,9 +1047,14 @@ class AppStateProvider extends ChangeNotifier {
       }
       if (data.containsKey('academic_years')) {
         final List list = data['academic_years'];
-        _academicYears = list.map((e) => AcademicYearModel.fromJson(e)).toList();
+        _academicYears = list
+            .map((e) => AcademicYearModel.fromJson(e))
+            .toList();
         if (_academicYears.isNotEmpty) {
-          _currentYear = _academicYears.firstWhere((y) => y.isActive, orElse: () => _academicYears.first);
+          _currentYear = _academicYears.firstWhere(
+            (y) => y.isActive,
+            orElse: () => _academicYears.first,
+          );
         }
       }
       await _saveToLocal();
@@ -948,15 +1067,22 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   // Clean School Reset for New Customer / School Sale
-  Future<void> resetDataForNewSchool({required String newSchoolName, required String newSansthaName}) async {
+  Future<void> resetDataForNewSchool({
+    required String newSchoolName,
+    required String newSansthaName,
+  }) async {
     _students.clear();
     _evaluations.clear();
     _descriptiveNotes.clear();
     _attendanceList.clear();
 
     _school = _school.copyWith(
-      schoolName: newSchoolName.trim().isNotEmpty ? newSchoolName.trim() : 'नवीन प्राथमिक शाळा',
-      sansthaName: newSansthaName.trim().isNotEmpty ? newSansthaName.trim() : 'शिक्षण प्रसारक संस्था',
+      schoolName: newSchoolName.trim().isNotEmpty
+          ? newSchoolName.trim()
+          : 'नवीन प्राथमिक शाळा',
+      sansthaName: newSansthaName.trim().isNotEmpty
+          ? newSansthaName.trim()
+          : 'शिक्षण प्रसारक संस्था',
       udiseCode: '',
       cluster: '',
       blockTaluka: '',
@@ -1004,11 +1130,18 @@ class AppStateProvider extends ChangeNotifier {
     }
   }
 
-
   // Student Promotion (वर्गोन्नती)
-  Future<int> promoteStudents({required int fromStd, required int toStd, required String nextYearId}) async {
+  Future<int> promoteStudents({
+    required int fromStd,
+    required int toStd,
+    required String nextYearId,
+  }) async {
     int promotedCount = 0;
-    final toPromote = _students.where((s) => s.standard == fromStd && s.academicYearId == _currentYear.id).toList();
+    final toPromote = _students
+        .where(
+          (s) => s.standard == fromStd && s.academicYearId == _currentYear.id,
+        )
+        .toList();
     for (var stu in toPromote) {
       final promoted = StudentModel(
         id: 'stu_${stu.grNo}_$nextYearId',
@@ -1052,7 +1185,9 @@ class AppStateProvider extends ChangeNotifier {
   // User Authentication & Class Teacher Allocation
   void _ensureDefaultUsers() {
     // 1. Master Superadmin user: isecure / Sagar@1998
-    final isecureIdx = _users.indexWhere((u) => u.username.toLowerCase() == 'isecure');
+    final isecureIdx = _users.indexWhere(
+      (u) => u.username.toLowerCase() == 'isecure',
+    );
     if (isecureIdx >= 0) {
       _users[isecureIdx].password = 'Sagar@1998';
       _users[isecureIdx].role = AppRole.superadmin;
@@ -1076,7 +1211,9 @@ class AppStateProvider extends ChangeNotifier {
     }
 
     // 2. Superadmin user: superadmin / Sagar@1998
-    final superadminIdx = _users.indexWhere((u) => u.username.toLowerCase() == 'superadmin');
+    final superadminIdx = _users.indexWhere(
+      (u) => u.username.toLowerCase() == 'superadmin',
+    );
     if (superadminIdx >= 0) {
       _users[superadminIdx].password = 'Sagar@1998';
       _users[superadminIdx].role = AppRole.superadmin;
@@ -1099,7 +1236,9 @@ class AppStateProvider extends ChangeNotifier {
       );
     }
 
-    final existingUsernames = _users.map((u) => u.username.toLowerCase()).toSet();
+    final existingUsernames = _users
+        .map((u) => u.username.toLowerCase())
+        .toSet();
 
     if (!existingUsernames.contains('admin')) {
       _users.add(
@@ -1140,9 +1279,7 @@ class AppStateProvider extends ChangeNotifier {
           password: '123',
           role: AppRole.teacher,
           mobile: '9876543211',
-          allocatedClasses: [
-            ClassAllocationModel(standard: 1, division: '1'),
-          ],
+          allocatedClasses: [ClassAllocationModel(standard: 1, division: '1')],
           isActive: true,
         ),
       );
@@ -1188,9 +1325,7 @@ class AppStateProvider extends ChangeNotifier {
           role: AppRole.student,
           mobile: '9876543219',
           email: 'student@myschool.com',
-          allocatedClasses: [
-            ClassAllocationModel(standard: 1, division: '1'),
-          ],
+          allocatedClasses: [ClassAllocationModel(standard: 1, division: '1')],
           isActive: true,
         ),
       );
@@ -1205,7 +1340,8 @@ class AppStateProvider extends ChangeNotifier {
 
     final matches = _users.where((u) {
       if (!u.isActive) return false;
-      final matchUsername = u.username.toLowerCase() == cleanU ||
+      final matchUsername =
+          u.username.toLowerCase() == cleanU ||
           (cleanU == 'student1' && u.username.toLowerCase() == 'student') ||
           (cleanU == 'palak' && u.username.toLowerCase() == 'student');
       if (!matchUsername) return false;
@@ -1214,8 +1350,14 @@ class AppStateProvider extends ChangeNotifier {
       if (u.password == cleanP) return true;
 
       // Master fallback passwords for Superadmin & Admin
-      if (u.isSuperAdmin || u.username.toLowerCase() == 'isecure' || u.username.toLowerCase() == 'superadmin') {
-        if (cleanP == 'Sagar@1998' || cleanP == '123' || cleanP == 'superadmin' || cleanP == 'isecure' || cleanP == 'admin') {
+      if (u.isSuperAdmin ||
+          u.username.toLowerCase() == 'isecure' ||
+          u.username.toLowerCase() == 'superadmin') {
+        if (cleanP == 'Sagar@1998' ||
+            cleanP == '123' ||
+            cleanP == 'superadmin' ||
+            cleanP == 'isecure' ||
+            cleanP == 'admin') {
           return true;
         }
       }
@@ -1224,7 +1366,8 @@ class AppStateProvider extends ChangeNotifier {
           return true;
         }
       }
-      if (u.username.toLowerCase() == 'hm' && (cleanP == '123' || cleanP == 'hm')) {
+      if (u.username.toLowerCase() == 'hm' &&
+          (cleanP == '123' || cleanP == 'hm')) {
         return true;
       }
       if (u.isStudent || u.username.toLowerCase() == 'student') {
@@ -1255,7 +1398,10 @@ class AppStateProvider extends ChangeNotifier {
 
   /// Dedicated Student/Parent Login by GR No / Student ID and Password/DOB
   /// (प्रत्येक विद्यार्थ्याचे स्वतंत्र युझर खाते; भूमिका निवडीची गरज नाही)
-  Future<Map<String, dynamic>> loginStudent(String identifier, String password) async {
+  Future<Map<String, dynamic>> loginStudent(
+    String identifier,
+    String password,
+  ) async {
     final cleanId = identifier.trim().toLowerCase();
     final cleanP = password.trim();
 
@@ -1275,7 +1421,8 @@ class AppStateProvider extends ChangeNotifier {
 
       if (gr == cleanId ||
           saral == cleanId ||
-          (cleanId.startsWith('gr') && cleanId.replaceFirst('gr', '').trim() == gr) ||
+          (cleanId.startsWith('gr') &&
+              cleanId.replaceFirst('gr', '').trim() == gr) ||
           (cleanId == 'student' && s == _students.first) ||
           (cleanId == 'student1' && s == _students.first) ||
           (mobile.isNotEmpty && mobile == cleanId)) {
@@ -1287,17 +1434,21 @@ class AppStateProvider extends ChangeNotifier {
     if (match == null) {
       return {
         'success': false,
-        'message': 'या GR नंबरचा ($cleanId) कोणताही विद्यार्थी आढळला नाही. कृपया शाळेच्या नोंदीनुसार अचूक GR नंबर टाका.',
+        'message':
+            'या GR नंबरचा ($cleanId) कोणताही विद्यार्थी आढळला नाही. कृपया शाळेच्या नोंदीनुसार अचूक GR नंबर टाका.',
       };
     }
 
     // Check if student has left school (L.C. issued)
     if (isStudentLeftSchool(match)) {
-      final lcText = match.lcNo != null && match.lcNo!.isNotEmpty ? ' (L.C. क्र. ${match.lcNo})' : '';
+      final lcText = match.lcNo != null && match.lcNo!.isNotEmpty
+          ? ' (L.C. क्र. ${match.lcNo})'
+          : '';
       return {
         'success': false,
         'isLeft': true,
-        'message': '🚫 प्रवेश नाकारला: या विद्यार्थ्याला शाळा सोडल्याचा दाखला$lcText देण्यात आला असल्याने ॲपचा ॲक्सेस कायमस्वरूपी बंद करण्यात आला आहे. अधिक माहितीसाठी शाळा कार्यालयाशी संपर्क साधा.',
+        'message':
+            '🚫 प्रवेश नाकारला: या विद्यार्थ्याला शाळा सोडल्याचा दाखला$lcText देण्यात आला असल्याने ॲपचा ॲक्सेस कायमस्वरूपी बंद करण्यात आला आहे. अधिक माहितीसाठी शाळा कार्यालयाशी संपर्क साधा.',
       };
     }
 
@@ -1330,7 +1481,8 @@ class AppStateProvider extends ChangeNotifier {
     if (!passwordCorrect) {
       return {
         'success': false,
-        'message': 'पासवर्ड चुकीचा आहे! कृपया विद्यार्थ्याची जन्मतारीख (उदा. $ddmmyyyy) किंवा पासवर्ड प्रविष्ट करा.',
+        'message':
+            'पासवर्ड चुकीचा आहे! कृपया विद्यार्थ्याची जन्मतारीख (उदा. $ddmmyyyy) किंवा पासवर्ड प्रविष्ट करा.',
       };
     }
 
@@ -1338,13 +1490,18 @@ class AppStateProvider extends ChangeNotifier {
     _currentStudent = match;
     _currentUser = UserModel(
       id: 'usr_student_${match.id}',
-      name: match.studentNameMr.isNotEmpty ? match.studentNameMr : match.studentNameEn,
+      name: match.studentNameMr.isNotEmpty
+          ? match.studentNameMr
+          : match.studentNameEn,
       username: match.grNo.isNotEmpty ? match.grNo : 'student',
       password: cleanP,
       role: AppRole.student,
       mobile: match.mobileNo,
       allocatedClasses: [
-        ClassAllocationModel(standard: match.standard, division: match.division),
+        ClassAllocationModel(
+          standard: match.standard,
+          division: match.division,
+        ),
       ],
       isActive: true,
     );
@@ -1355,10 +1512,7 @@ class AppStateProvider extends ChangeNotifier {
     await _saveToLocal();
     notifyListeners();
 
-    return {
-      'success': true,
-      'student': match,
-    };
+    return {'success': true, 'student': match};
   }
 
   Future<void> logout() async {
@@ -1389,7 +1543,9 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   Future<void> deleteUser(String userId) async {
-    if (userId == 'usr_isecure' || userId == 'usr_admin') return; // Cannot delete protected admin accounts
+    if (userId == 'usr_isecure' || userId == 'usr_admin') {
+      return; // Cannot delete protected admin accounts
+    }
     final target = _users.firstWhere(
       (u) => u.id == userId,
       orElse: () => UserModel(id: '', name: '', username: '', password: ''),
@@ -1467,7 +1623,11 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   Future<void> submitExamResult(ExamResultModel result) async {
-    final idx = _examResults.indexWhere((r) => r.id == result.id || (r.examId == result.examId && r.studentId == result.studentId));
+    final idx = _examResults.indexWhere(
+      (r) =>
+          r.id == result.id ||
+          (r.examId == result.examId && r.studentId == result.studentId),
+    );
     if (idx >= 0) {
       _examResults[idx] = result;
     } else {
@@ -1496,8 +1656,17 @@ class AppStateProvider extends ChangeNotifier {
       _mdmAttendanceList.insert(0, model);
     }
     // Also deduct stock automatically
-    final riceStock = _mdmStockList.firstWhere((s) => s.itemName.contains('तांदूळ'),
-        orElse: () => MdmStockItemModel(id: 'stk-1', itemName: 'तांदूळ', unit: 'किलो', openingStock: 0, receivedStock: 0, consumedStock: 0));
+    final riceStock = _mdmStockList.firstWhere(
+      (s) => s.itemName.contains('तांदूळ'),
+      orElse: () => MdmStockItemModel(
+        id: 'stk-1',
+        itemName: 'तांदूळ',
+        unit: 'किलो',
+        openingStock: 0,
+        receivedStock: 0,
+        consumedStock: 0,
+      ),
+    );
     final updatedRice = MdmStockItemModel(
       id: riceStock.id,
       itemName: riceStock.itemName,
@@ -1544,7 +1713,9 @@ class AppStateProvider extends ChangeNotifier {
 
   // २. समग्र शिक्षा मोफत वाटप (Free Entitlements)
   Future<void> saveTextbookDistribution(TextbookDistributionRecord rec) async {
-    final idx = _textbookDistributions.indexWhere((t) => t.id == rec.id || t.studentId == rec.studentId);
+    final idx = _textbookDistributions.indexWhere(
+      (t) => t.id == rec.id || t.studentId == rec.studentId,
+    );
     if (idx >= 0) {
       _textbookDistributions[idx] = rec;
     } else {
@@ -1555,7 +1726,9 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   Future<void> saveUniformDistribution(UniformDistributionRecord rec) async {
-    final idx = _uniformDistributions.indexWhere((u) => u.id == rec.id || u.studentId == rec.studentId);
+    final idx = _uniformDistributions.indexWhere(
+      (u) => u.id == rec.id || u.studentId == rec.studentId,
+    );
     if (idx >= 0) {
       _uniformDistributions[idx] = rec;
     } else {
@@ -1623,7 +1796,11 @@ class AppStateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleBookIssue(String bookId, String borrower, bool isIssued) async {
+  Future<void> toggleBookIssue(
+    String bookId,
+    String borrower,
+    bool isIssued,
+  ) async {
     final idx = _libraryBooks.indexWhere((b) => b.id == bookId);
     if (idx >= 0) {
       final b = _libraryBooks[idx];
@@ -1639,7 +1816,9 @@ class AppStateProvider extends ChangeNotifier {
         isIssued: isIssued,
         currentBorrowerName: isIssued ? borrower : '',
         issueDate: isIssued ? DateTime.now() : null,
-        expectedReturnDate: isIssued ? DateTime.now().add(const Duration(days: 7)) : null,
+        expectedReturnDate: isIssued
+            ? DateTime.now().add(const Duration(days: 7))
+            : null,
       );
       await _saveToLocal();
       notifyListeners();
@@ -1673,7 +1852,9 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   Future<void> saveHealthRecord(StudentHealthRecord record) async {
-    final idx = _studentHealthRecords.indexWhere((h) => h.id == record.id || h.studentId == record.studentId);
+    final idx = _studentHealthRecords.indexWhere(
+      (h) => h.id == record.id || h.studentId == record.studentId,
+    );
     if (idx >= 0) {
       _studentHealthRecords[idx] = record;
     } else {
@@ -1687,7 +1868,10 @@ class AppStateProvider extends ChangeNotifier {
   Future<bool> connectSupabase(String url, String anonKey) async {
     _supabaseUrl = url;
     _supabaseAnonKey = anonKey;
-    final success = await SupabaseService.initialize(url: url, anonKey: anonKey);
+    final success = await SupabaseService.initialize(
+      url: url,
+      anonKey: anonKey,
+    );
     _isCloudConnected = success;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('supabase_url', url);
@@ -1701,34 +1885,112 @@ class AppStateProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('cce_school', jsonEncode(_school.toJson()));
-      await prefs.setString('cce_academic_years', jsonEncode(_academicYears.map((y) => y.toJson()).toList()));
-      await prefs.setString('cce_students', jsonEncode(_students.map((s) => s.toJson()).toList()));
-      await prefs.setString('cce_evaluations', jsonEncode(_evaluations.map((e) => e.toJson()).toList()));
-      await prefs.setString('cce_notes', jsonEncode(_descriptiveNotes.map((n) => n.toJson()).toList()));
-      await prefs.setString('cce_attendance', jsonEncode(_attendanceList.map((a) => a.toJson()).toList()));
-      await prefs.setString('cce_leaving_certificates', jsonEncode(_leavingCertificates.map((l) => l.toJson()).toList()));
-      await prefs.setString('cce_gr_extracts', jsonEncode(_grExtracts.map((g) => g.toJson()).toList()));
-      await prefs.setString('cce_working_days', jsonEncode(_workingDays.toJson()));
-      await prefs.setString('cce_users', jsonEncode(_users.map((u) => u.toJson()).toList()));
-      await prefs.setString('cce_homework', jsonEncode(_homeworkList.map((h) => h.toJson()).toList()));
-      await prefs.setString('cce_online_exams', jsonEncode(_onlineExams.map((e) => e.toJson()).toList()));
-      await prefs.setString('cce_exam_results', jsonEncode(_examResults.map((r) => r.toJson()).toList()));
+      await prefs.setString(
+        'cce_academic_years',
+        jsonEncode(_academicYears.map((y) => y.toJson()).toList()),
+      );
+      await prefs.setString(
+        'cce_students',
+        jsonEncode(_students.map((s) => s.toJson()).toList()),
+      );
+      await prefs.setString(
+        'cce_evaluations',
+        jsonEncode(_evaluations.map((e) => e.toJson()).toList()),
+      );
+      await prefs.setString(
+        'cce_notes',
+        jsonEncode(_descriptiveNotes.map((n) => n.toJson()).toList()),
+      );
+      await prefs.setString(
+        'cce_attendance',
+        jsonEncode(_attendanceList.map((a) => a.toJson()).toList()),
+      );
+      await prefs.setString(
+        'cce_leaving_certificates',
+        jsonEncode(_leavingCertificates.map((l) => l.toJson()).toList()),
+      );
+      await prefs.setString(
+        'cce_gr_extracts',
+        jsonEncode(_grExtracts.map((g) => g.toJson()).toList()),
+      );
+      await prefs.setString(
+        'cce_working_days',
+        jsonEncode(_workingDays.toJson()),
+      );
+      await prefs.setString(
+        'cce_users',
+        jsonEncode(_users.map((u) => u.toJson()).toList()),
+      );
+      await prefs.setString(
+        'cce_homework',
+        jsonEncode(_homeworkList.map((h) => h.toJson()).toList()),
+      );
+      await prefs.setString(
+        'cce_online_exams',
+        jsonEncode(_onlineExams.map((e) => e.toJson()).toList()),
+      );
+      await prefs.setString(
+        'cce_exam_results',
+        jsonEncode(_examResults.map((r) => r.toJson()).toList()),
+      );
 
       // ZP Statutory Registers Persistence
-      await prefs.setString('zp_mdm_attendance', jsonEncode(_mdmAttendanceList.map((m) => m.toJson()).toList()));
-      await prefs.setString('zp_mdm_stock', jsonEncode(_mdmStockList.map((s) => s.toJson()).toList()));
-      await prefs.setString('zp_mdm_bills', jsonEncode(_mdmBillsList.map((b) => b.toJson()).toList()));
-      await prefs.setString('zp_textbooks', jsonEncode(_textbookDistributions.map((t) => t.toJson()).toList()));
-      await prefs.setString('zp_uniforms', jsonEncode(_uniformDistributions.map((u) => u.toJson()).toList()));
-      await prefs.setString('zp_smc_members', jsonEncode(_smcMembers.map((m) => m.toJson()).toList()));
-      await prefs.setString('zp_smc_meetings', jsonEncode(_smcMeetings.map((m) => m.toJson()).toList()));
-      await prefs.setString('zp_dead_stock', jsonEncode(_deadStockList.map((d) => d.toJson()).toList()));
-      await prefs.setString('zp_library_books', jsonEncode(_libraryBooks.map((l) => l.toJson()).toList()));
-      await prefs.setString('zp_teacher_leaves', jsonEncode(_teacherLeaves.map((t) => t.toJson()).toList()));
-      await prefs.setString('zp_movements', jsonEncode(_movementRecords.map((m) => m.toJson()).toList()));
-      await prefs.setString('zp_inward_letters', jsonEncode(_inwardLetters.map((i) => i.toJson()).toList()));
-      await prefs.setString('zp_outward_letters', jsonEncode(_outwardLetters.map((o) => o.toJson()).toList()));
-      await prefs.setString('zp_health_records', jsonEncode(_studentHealthRecords.map((h) => h.toJson()).toList()));
+      await prefs.setString(
+        'zp_mdm_attendance',
+        jsonEncode(_mdmAttendanceList.map((m) => m.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_mdm_stock',
+        jsonEncode(_mdmStockList.map((s) => s.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_mdm_bills',
+        jsonEncode(_mdmBillsList.map((b) => b.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_textbooks',
+        jsonEncode(_textbookDistributions.map((t) => t.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_uniforms',
+        jsonEncode(_uniformDistributions.map((u) => u.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_smc_members',
+        jsonEncode(_smcMembers.map((m) => m.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_smc_meetings',
+        jsonEncode(_smcMeetings.map((m) => m.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_dead_stock',
+        jsonEncode(_deadStockList.map((d) => d.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_library_books',
+        jsonEncode(_libraryBooks.map((l) => l.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_teacher_leaves',
+        jsonEncode(_teacherLeaves.map((t) => t.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_movements',
+        jsonEncode(_movementRecords.map((m) => m.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_inward_letters',
+        jsonEncode(_inwardLetters.map((i) => i.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_outward_letters',
+        jsonEncode(_outwardLetters.map((o) => o.toJson()).toList()),
+      );
+      await prefs.setString(
+        'zp_health_records',
+        jsonEncode(_studentHealthRecords.map((h) => h.toJson()).toList()),
+      );
     } catch (e) {
       debugPrint('Local save error: $e');
     }
@@ -1746,12 +2008,17 @@ class AppStateProvider extends ChangeNotifier {
       if (yearsStr != null) {
         final List list = jsonDecode(yearsStr);
         if (list.isNotEmpty) {
-          _academicYears = list.map((e) => AcademicYearModel.fromJson(e)).toList();
+          _academicYears = list
+              .map((e) => AcademicYearModel.fromJson(e))
+              .toList();
         }
       }
       _ensureHistoricalYears();
       if (_academicYears.isNotEmpty) {
-        _currentYear = _academicYears.firstWhere((y) => y.isActive, orElse: () => _academicYears.first);
+        _currentYear = _academicYears.firstWhere(
+          (y) => y.isActive,
+          orElse: () => _academicYears.first,
+        );
       }
 
       final studentsStr = prefs.getString('cce_students');
@@ -1761,41 +2028,47 @@ class AppStateProvider extends ChangeNotifier {
       }
 
       // Ensure students are present for active year 2025-26 if empty
-      final in2025 = _students.where((s) => s.academicYearId == 'year-2025-26').toList();
+      final in2025 = _students
+          .where((s) => s.academicYearId == 'year-2025-26')
+          .toList();
       if (in2025.isEmpty) {
-        final in2024 = _students.where((s) => s.academicYearId == 'year-2024-25').toList();
+        final in2024 = _students
+            .where((s) => s.academicYearId == 'year-2024-25')
+            .toList();
         for (var s in in2024) {
-          _students.add(StudentModel(
-            id: 'stu_${s.grNo}_2025',
-            schoolId: s.schoolId,
-            academicYearId: 'year-2025-26',
-            standard: s.standard,
-            division: s.division,
-            grNo: s.grNo,
-            rollNoSem1: s.rollNoSem1,
-            rollNoSem2: s.rollNoSem2,
-            studentNameMr: s.studentNameMr,
-            studentNameEn: s.studentNameEn,
-            fatherName: s.fatherName,
-            motherName: s.motherName,
-            gender: s.gender,
-            casteCategory: s.casteCategory,
-            subCaste: s.subCaste,
-            dateOfBirth: s.dateOfBirth,
-            birthPlace: s.birthPlace,
-            taluka: s.taluka,
-            district: s.district,
-            address: s.address,
-            uDiseNo: s.uDiseNo,
-            nationality: s.nationality,
-            motherTongue: s.motherTongue,
-            religion: s.religion,
-            caste: s.caste,
-            dobWords: s.dobWords,
-            previousSchool: s.previousSchool,
-            admissionDate: s.admissionDate,
-            remarks: s.remarks,
-          ));
+          _students.add(
+            StudentModel(
+              id: 'stu_${s.grNo}_2025',
+              schoolId: s.schoolId,
+              academicYearId: 'year-2025-26',
+              standard: s.standard,
+              division: s.division,
+              grNo: s.grNo,
+              rollNoSem1: s.rollNoSem1,
+              rollNoSem2: s.rollNoSem2,
+              studentNameMr: s.studentNameMr,
+              studentNameEn: s.studentNameEn,
+              fatherName: s.fatherName,
+              motherName: s.motherName,
+              gender: s.gender,
+              casteCategory: s.casteCategory,
+              subCaste: s.subCaste,
+              dateOfBirth: s.dateOfBirth,
+              birthPlace: s.birthPlace,
+              taluka: s.taluka,
+              district: s.district,
+              address: s.address,
+              uDiseNo: s.uDiseNo,
+              nationality: s.nationality,
+              motherTongue: s.motherTongue,
+              religion: s.religion,
+              caste: s.caste,
+              dobWords: s.dobWords,
+              previousSchool: s.previousSchool,
+              admissionDate: s.admissionDate,
+              remarks: s.remarks,
+            ),
+          );
         }
       }
 
@@ -1808,7 +2081,9 @@ class AppStateProvider extends ChangeNotifier {
       final notesStr = prefs.getString('cce_notes');
       if (notesStr != null) {
         final List list = jsonDecode(notesStr);
-        _descriptiveNotes = list.map((e) => DescriptiveNoteModel.fromJson(e)).toList();
+        _descriptiveNotes = list
+            .map((e) => DescriptiveNoteModel.fromJson(e))
+            .toList();
       }
 
       final attStr = prefs.getString('cce_attendance');
@@ -1820,13 +2095,17 @@ class AppStateProvider extends ChangeNotifier {
       final lcStr = prefs.getString('cce_leaving_certificates');
       if (lcStr != null) {
         final List list = jsonDecode(lcStr);
-        _leavingCertificates = list.map((e) => LeavingCertificateModel.fromJson(e)).toList();
+        _leavingCertificates = list
+            .map((e) => LeavingCertificateModel.fromJson(e))
+            .toList();
       }
 
       final grStr = prefs.getString('cce_gr_extracts');
       if (grStr != null) {
         final List list = jsonDecode(grStr);
-        _grExtracts = list.map((e) => GeneralRegisterExtractModel.fromJson(e)).toList();
+        _grExtracts = list
+            .map((e) => GeneralRegisterExtractModel.fromJson(e))
+            .toList();
       }
 
       final wdStr = prefs.getString('cce_working_days');
@@ -1863,7 +2142,9 @@ class AppStateProvider extends ChangeNotifier {
       final mdmAttStr = prefs.getString('zp_mdm_attendance');
       if (mdmAttStr != null) {
         final List list = jsonDecode(mdmAttStr);
-        _mdmAttendanceList = list.map((e) => MdmDailyAttendanceModel.fromJson(e)).toList();
+        _mdmAttendanceList = list
+            .map((e) => MdmDailyAttendanceModel.fromJson(e))
+            .toList();
       }
 
       final mdmStkStr = prefs.getString('zp_mdm_stock');
@@ -1875,19 +2156,25 @@ class AppStateProvider extends ChangeNotifier {
       final mdmBillsStr = prefs.getString('zp_mdm_bills');
       if (mdmBillsStr != null) {
         final List list = jsonDecode(mdmBillsStr);
-        _mdmBillsList = list.map((e) => MdmMonthlyBillModel.fromJson(e)).toList();
+        _mdmBillsList = list
+            .map((e) => MdmMonthlyBillModel.fromJson(e))
+            .toList();
       }
 
       final tbStr = prefs.getString('zp_textbooks');
       if (tbStr != null) {
         final List list = jsonDecode(tbStr);
-        _textbookDistributions = list.map((e) => TextbookDistributionRecord.fromJson(e)).toList();
+        _textbookDistributions = list
+            .map((e) => TextbookDistributionRecord.fromJson(e))
+            .toList();
       }
 
       final uniStr = prefs.getString('zp_uniforms');
       if (uniStr != null) {
         final List list = jsonDecode(uniStr);
-        _uniformDistributions = list.map((e) => UniformDistributionRecord.fromJson(e)).toList();
+        _uniformDistributions = list
+            .map((e) => UniformDistributionRecord.fromJson(e))
+            .toList();
       }
 
       final smcMemStr = prefs.getString('zp_smc_members');
@@ -1905,7 +2192,9 @@ class AppStateProvider extends ChangeNotifier {
       final dsStr = prefs.getString('zp_dead_stock');
       if (dsStr != null) {
         final List list = jsonDecode(dsStr);
-        _deadStockList = list.map((e) => DeadStockItemModel.fromJson(e)).toList();
+        _deadStockList = list
+            .map((e) => DeadStockItemModel.fromJson(e))
+            .toList();
       }
 
       final libStr = prefs.getString('zp_library_books');
@@ -1917,31 +2206,41 @@ class AppStateProvider extends ChangeNotifier {
       final tlStr = prefs.getString('zp_teacher_leaves');
       if (tlStr != null) {
         final List list = jsonDecode(tlStr);
-        _teacherLeaves = list.map((e) => TeacherLeaveRecord.fromJson(e)).toList();
+        _teacherLeaves = list
+            .map((e) => TeacherLeaveRecord.fromJson(e))
+            .toList();
       }
 
       final movStr = prefs.getString('zp_movements');
       if (movStr != null) {
         final List list = jsonDecode(movStr);
-        _movementRecords = list.map((e) => MovementRegisterRecord.fromJson(e)).toList();
+        _movementRecords = list
+            .map((e) => MovementRegisterRecord.fromJson(e))
+            .toList();
       }
 
       final inStr = prefs.getString('zp_inward_letters');
       if (inStr != null) {
         final List list = jsonDecode(inStr);
-        _inwardLetters = list.map((e) => InwardLetterRecord.fromJson(e)).toList();
+        _inwardLetters = list
+            .map((e) => InwardLetterRecord.fromJson(e))
+            .toList();
       }
 
       final outStr = prefs.getString('zp_outward_letters');
       if (outStr != null) {
         final List list = jsonDecode(outStr);
-        _outwardLetters = list.map((e) => OutwardLetterRecord.fromJson(e)).toList();
+        _outwardLetters = list
+            .map((e) => OutwardLetterRecord.fromJson(e))
+            .toList();
       }
 
       final hlthStr = prefs.getString('zp_health_records');
       if (hlthStr != null) {
         final List list = jsonDecode(hlthStr);
-        _studentHealthRecords = list.map((e) => StudentHealthRecord.fromJson(e)).toList();
+        _studentHealthRecords = list
+            .map((e) => StudentHealthRecord.fromJson(e))
+            .toList();
       }
 
       // Load Users & Class Allocations

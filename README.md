@@ -27,9 +27,15 @@
 - **नवीन शाळेसाठी क्लीन रिसेट (Clean Setup)**: जुने विद्यार्थी, गुण व हजेरी काढून दुसऱ्या शाळेसाठी फ्रेश डेटाबेस तयार करणे.
 
 ### २. 🚀 ऑनलाइन ऑटो-अपडेटर (Online GitHub Auto-Updates)
-- GitHub Releases व `version.json` द्वारे थेट सर्व इन्स्टॉल केलेल्या संगणकांवर स्वयंचलित अपडेट नोटिफिकेशन.
-- एका क्लिकवर इन-ॲप डाउनलोड व इन्स्टॉलेशन.
-- डॅशबोर्ड व साइडबारवर रिअल-टाइम व्हर्जन अलर्ट्स.
+- GitHub Releases व `version.json` द्वारे Windows सॉफ्टवेअर आणि Android ॲपसाठी स्वयंचलित अपडेट नोटिफिकेशन (ॲप सुरू झाल्यावर आणि चालू असताना दर ६ तासांनी तपासणी).
+- ॲपमधील अपडेट डायलॉगमधून Windows installer किंवा Android APK डाउनलोड व इन्स्टॉलेशन.
+- डॅशबोर्ड, साइडबार आणि ॲप उघडल्यावर अपडेट सूचना.
+
+#### Android अपडेट रिलीज
+- `flutter build apk --release` ने APK तयार करा (`build/app/outputs/flutter-apk/app-release.apk`).
+- नवीन आवृत्तीच्या GitHub Release मध्ये APK asset जोडा आणि tag `version.json` मधील `version` शी जुळवा (उदा. `v1.3.1`).
+- Android अपडेटसाठी त्याच Android application ID आणि signing key ने APK तयार करणे आवश्यक आहे. APK इंस्टॉल करण्यापूर्वी Android वापरकर्त्याला एकदाच “Install unknown apps” परवानगी आणि प्रत्येक अपडेटसाठी installer confirmation द्यावी लागते; Android सुरक्षिततेमुळे पूर्णपणे silent install उपलब्ध नाही.
+- पर्यायीपणे `version.json` मध्ये थेट APK URL साठी `android_download_url` वापरा. GitHub Release मधील `.apk` asset स्वयंचलितपणे निवडला जातो.
 
 ### ३. 🎓 विद्यार्थी नोंदणी व व्यवस्थापन (Student Master Directory)
 - जनरल रजिस्टर (GR No.), सत्र १ व सत्र २ हजेरी क्रमांक.

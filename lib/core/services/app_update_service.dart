@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../constants/app_colors.dart';
 
 class AppUpdateInfo {
@@ -36,11 +38,16 @@ class AppUpdateInfo {
 }
 
 class AppUpdateService {
-  static const String currentVersion = '1.3.0';
-  static const String buildNumber = '4';
+  static String currentVersion = '1.4.0';
+  static String buildNumber = '5';
   static const String githubOwner = 'isecuredevelopers';
   static const String githubRepo = 'iSecure-EduMaster-CCE-Pro';
-  static const String repoUrl = 'https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro';
+  static const String repoUrl =
+      'https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro';
+  static const MethodChannel _androidUpdateChannel = MethodChannel(
+    'com.myschool.cce.myschool/updates',
+  );
+  static Future<void>? _packageInfoLoad;
 
   static const String apiLatestReleaseUrl =
       'https://api.github.com/repos/$githubOwner/$githubRepo/releases/latest';
@@ -50,11 +57,23 @@ class AppUpdateService {
   /// Compare two semantic version strings (e.g. "1.1.0" vs "1.0.0")
   static bool isVersionNewer(String remoteVer, String localVer) {
     try {
-      final cleanRemote = remoteVer.toLowerCase().replaceAll(RegExp(r'[^0-9.]'), '');
-      final cleanLocal = localVer.toLowerCase().replaceAll(RegExp(r'[^0-9.]'), '');
+      final cleanRemote = remoteVer.toLowerCase().replaceAll(
+        RegExp(r'[^0-9.]'),
+        '',
+      );
+      final cleanLocal = localVer.toLowerCase().replaceAll(
+        RegExp(r'[^0-9.]'),
+        '',
+      );
 
-      final rParts = cleanRemote.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-      final lParts = cleanLocal.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+      final rParts = cleanRemote
+          .split('.')
+          .map((e) => int.tryParse(e) ?? 0)
+          .toList();
+      final lParts = cleanLocal
+          .split('.')
+          .map((e) => int.tryParse(e) ?? 0)
+          .toList();
 
       while (rParts.length < 3) {
         rParts.add(0);
@@ -73,15 +92,25 @@ class AppUpdateService {
     }
   }
 
-  /// Launch external URL in Windows default browser
+  /// Open a URL in the platform's default browser.
   static Future<void> launchUrl(String url) async {
     try {
       if (Platform.isWindows) {
         await Process.run('cmd', ['/c', 'start', '', url]);
+      } else if (Platform.isAndroid) {
+        await _androidUpdateChannel.invokeMethod<void>('openUrl', {'url': url});
       }
     } catch (e) {
       debugPrint('Launch URL error: $e');
     }
+  }
+
+  static Future<bool> installAndroidApk(String filePath) async {
+    if (!Platform.isAndroid) return false;
+    return await _androidUpdateChannel.invokeMethod<bool>('installApk', {
+          'filePath': filePath,
+        }) ??
+        false;
   }
 
   /// Check online GitHub repository for new release
@@ -89,6 +118,12 @@ class AppUpdateService {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
       return null;
     }
+    _packageInfoLoad ??= PackageInfo.fromPlatform().then((packageInfo) {
+      currentVersion = packageInfo.version;
+      buildNumber = packageInfo.buildNumber;
+    });
+    await _packageInfoLoad;
+
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 10);
 
@@ -97,39 +132,53 @@ class AppUpdateService {
       final request = await client.getUrl(Uri.parse(apiLatestReleaseUrl));
       request.headers.set('User-Agent', 'iSecure-EduMaster-CCE-Pro');
       request.headers.set('Accept', 'application/vnd.github.v3+json');
-      final response = await request.close().timeout(const Duration(seconds: 10));
+      final response = await request.close().timeout(
+        const Duration(seconds: 10),
+      );
 
       if (response.statusCode == 200) {
         final body = await response.transform(utf8.decoder).join();
         final Map<String, dynamic> data = jsonDecode(body);
 
         final tagName = data['tag_name']?.toString() ?? '';
-        final title = data['name']?.toString() ?? 'iSecure EduMaster नवीन आवृत्ती';
+        final title =
+            data['name']?.toString() ?? 'iSecure EduMaster नवीन आवृत्ती';
         final notes = data['body']?.toString() ?? 'नवीन कार्यक्षमता व सुधारणा';
         final htmlUrl = data['html_url']?.toString() ?? repoUrl;
-        final publishedAt = data['published_at']?.toString().split('T').first ?? '';
+        final publishedAt =
+            data['published_at']?.toString().split('T').first ?? '';
 
         String? downloadUrl;
         int? assetSize;
 
         if (data['assets'] is List && (data['assets'] as List).isNotEmpty) {
-          final assets = data['assets'] as List;
-          // Prefer .exe or .zip asset
-          final match = assets.firstWhere(
-            (a) {
-              final n = (a['name']?.toString() ?? '').toLowerCase();
-              return n.endsWith('.exe') || n.endsWith('.zip');
-            },
-            orElse: () => assets.first,
-          );
-          downloadUrl = match['browser_download_url']?.toString();
-          assetSize = match['size'] is int ? match['size'] as int : null;
+          final assets = (data['assets'] as List).whereType<Map>();
+          final extension = Platform.isAndroid ? '.apk' : '.exe';
+          final matchingAssets = assets.where((asset) {
+            final name = (asset['name']?.toString() ?? '').toLowerCase();
+            return Platform.isAndroid
+                ? name.endsWith(extension)
+                : name.endsWith(extension) || name.endsWith('.zip');
+          }).toList();
+          if (matchingAssets.isNotEmpty) {
+            final match = Platform.isAndroid
+                ? matchingAssets.firstWhere(
+                    (asset) => (asset['name']?.toString() ?? '')
+                        .toLowerCase()
+                        .contains('universal'),
+                    orElse: () => matchingAssets.first,
+                  )
+                : matchingAssets.first;
+            downloadUrl = match['browser_download_url']?.toString();
+            assetSize = match['size'] is int ? match['size'] as int : null;
+          }
         }
 
-        downloadUrl ??= '$repoUrl/releases/latest';
+        downloadUrl ??= htmlUrl;
 
         final hasUpdate = isVersionNewer(tagName, currentVersion);
 
+        client.close();
         return AppUpdateInfo(
           currentVersion: currentVersion,
           latestVersion: tagName.replaceAll('v', '').replaceAll('V', ''),
@@ -150,16 +199,29 @@ class AppUpdateService {
     try {
       final request = await client.getUrl(Uri.parse(rawVersionJsonUrl));
       request.headers.set('User-Agent', 'iSecure-EduMaster-CCE-Pro');
-      final response = await request.close().timeout(const Duration(seconds: 8));
+      final response = await request.close().timeout(
+        const Duration(seconds: 8),
+      );
 
       if (response.statusCode == 200) {
         final body = await response.transform(utf8.decoder).join();
         final Map<String, dynamic> data = jsonDecode(body);
 
         final remoteVer = data['version']?.toString() ?? '';
-        final title = data['title']?.toString() ?? 'iSecure EduMaster CCE Pro नवीन आवृत्ती';
-        final notes = data['changelog']?.toString() ?? 'नवीन कार्यक्षमता व सुधारणा';
-        final downloadUrl = data['download_url']?.toString() ?? '$repoUrl/releases/latest';
+        final title =
+            data['title']?.toString() ??
+            'iSecure EduMaster CCE Pro नवीन आवृत्ती';
+        final notes =
+            data['changelog']?.toString() ?? 'नवीन कार्यक्षमता व सुधारणा';
+        final platformDownloadUrl = Platform.isAndroid
+            ? data['android_download_url']
+            : Platform.isWindows
+            ? data['windows_download_url']
+            : null;
+        final downloadUrl =
+            platformDownloadUrl?.toString() ??
+            data['download_url']?.toString() ??
+            '$repoUrl/releases/latest';
         final releaseDate = data['release_date']?.toString() ?? '';
         final isMandatory = data['is_mandatory'] == true;
 
@@ -186,25 +248,38 @@ class AppUpdateService {
     return null;
   }
 
-  /// Download installer file from URL to Downloads folder
+  /// Download the installer on desktop or the APK into Android's private cache.
   static Future<void> downloadInstaller({
     required String downloadUrl,
     required String fileName,
-    required void Function(double progress, int downloaded, int total) onProgress,
+    required void Function(double progress, int downloaded, int total)
+    onProgress,
     required void Function(String filePath) onComplete,
     required void Function(String error) onError,
   }) async {
     try {
-      final userProfile = Platform.environment['USERPROFILE'] ?? 'C:\\Users\\Default';
-      final downloadDir = Directory('$userProfile\\Downloads\\iSecure_Updates');
+      final Directory downloadDir;
+      if (Platform.isAndroid) {
+        downloadDir = Directory.systemTemp;
+      } else {
+        final userProfile =
+            Platform.environment['USERPROFILE'] ?? 'C:\\Users\\Default';
+        downloadDir = Directory('$userProfile\\Downloads\\iSecure_Updates');
+      }
       if (!await downloadDir.exists()) {
         await downloadDir.create(recursive: true);
       }
 
-      final safeFileName = fileName.endsWith('.exe') || fileName.endsWith('.zip')
+      final extension = Platform.isAndroid ? '.apk' : '.exe';
+      final safeFileName =
+          fileName.endsWith('.exe') ||
+              fileName.endsWith('.zip') ||
+              fileName.endsWith('.apk')
           ? fileName
-          : '$fileName.exe';
-      final filePath = '${downloadDir.path}\\$safeFileName';
+          : '$fileName$extension';
+      final filePath = Platform.isWindows
+          ? '${downloadDir.path}\\$safeFileName'
+          : '${downloadDir.path}/$safeFileName';
       final file = File(filePath);
 
       final client = HttpClient();
@@ -227,7 +302,11 @@ class AppUpdateService {
         bytesDownloaded += chunk.length;
         sink.add(chunk);
         if (contentLength > 0) {
-          onProgress(bytesDownloaded / contentLength, bytesDownloaded, contentLength);
+          onProgress(
+            bytesDownloaded / contentLength,
+            bytesDownloaded,
+            contentLength,
+          );
         } else {
           onProgress(0.5, bytesDownloaded, -1);
         }
@@ -275,9 +354,18 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
       return;
     }
 
+    if (Platform.isAndroid && _downloadedFilePath != null) {
+      await _installDownloadedApk();
+      return;
+    }
+
     // If it's a direct link to github releases page rather than .exe, open browser
-    if (!url.endsWith('.exe') && !url.endsWith('.zip')) {
-      AppUpdateService.launchUrl(url);
+    final isInstallableAsset = Platform.isAndroid
+        ? url.toLowerCase().split('?').first.endsWith('.apk')
+        : url.toLowerCase().split('?').first.endsWith('.exe') ||
+              url.toLowerCase().split('?').first.endsWith('.zip');
+    if (!isInstallableAsset) {
+      await AppUpdateService.launchUrl(widget.info.releasePageUrl);
       return;
     }
 
@@ -287,7 +375,9 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
       _statusText = 'डाउनलोड सुरू होत आहे...';
     });
 
-    final fileName = 'iSecure-EduMaster-${widget.info.latestVersion}-Setup.exe';
+    final fileName = Platform.isAndroid
+        ? 'iSecure-EduMaster-${widget.info.latestVersion}.apk'
+        : 'iSecure-EduMaster-${widget.info.latestVersion}-Setup.exe';
 
     await AppUpdateService.downloadInstaller(
       downloadUrl: url,
@@ -299,7 +389,8 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
           if (total > 0) {
             final dMb = (downloaded / (1024 * 1024)).toStringAsFixed(1);
             final tMb = (total / (1024 * 1024)).toStringAsFixed(1);
-            _statusText = 'डाउनलोड होत आहे: $dMb MB / $tMb MB (${(prog * 100).toInt()}%)';
+            _statusText =
+                'डाउनलोड होत आहे: $dMb MB / $tMb MB (${(prog * 100).toInt()}%)';
           } else {
             final dMb = (downloaded / (1024 * 1024)).toStringAsFixed(1);
             _statusText = 'डाउनलोड होत आहे: $dMb MB...';
@@ -312,21 +403,27 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
           _isDownloading = false;
           _downloadProgress = 1.0;
           _downloadedFilePath = filePath;
-          _statusText = 'डाउनलोड पूर्ण झाले!';
+          _statusText = Platform.isAndroid
+              ? 'डाउनलोड पूर्ण. Android इन्स्टॉलर उघडत आहे...'
+              : 'डाउनलोड पूर्ण झाले!';
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('अपडेट पॅकेज यशस्वीरित्या डाउनलोड झाले! सेटअप सुरू केला जात आहे...'),
-            backgroundColor: AppColors.gradeA1,
-          ),
-        );
-
-        // Run installer on Windows
-        try {
-          Process.start(filePath, [], runInShell: true);
-        } catch (e) {
-          debugPrint('Execute installer error: $e');
+        if (Platform.isAndroid) {
+          _installDownloadedApk();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'अपडेट पॅकेज यशस्वीरित्या डाउनलोड झाले! सेटअप सुरू केला जात आहे...',
+              ),
+              backgroundColor: AppColors.gradeA1,
+            ),
+          );
+          try {
+            Process.start(filePath, [], runInShell: true);
+          } catch (e) {
+            debugPrint('Execute installer error: $e');
+          }
         }
       },
       onError: (err) {
@@ -339,9 +436,32 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
     );
   }
 
+  Future<void> _installDownloadedApk() async {
+    final filePath = _downloadedFilePath;
+    if (filePath == null) return;
+    try {
+      final installerOpened = await AppUpdateService.installAndroidApk(
+        filePath,
+      );
+      if (!mounted) return;
+      setState(() {
+        _statusText = installerOpened
+            ? 'इन्स्टॉलरमध्ये अपडेटची पुष्टी करा.'
+            : 'या ॲपसाठी अज्ञात ॲप्स इन्स्टॉल करण्याची परवानगी द्या आणि पुन्हा प्रयत्न करा.';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _statusText = 'इन्स्टॉलर उघडता आला नाही: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final info = widget.info;
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
+    final hasAndroidApk =
+        info.downloadUrl?.toLowerCase().split('?').first.endsWith('.apk') ==
+        true;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -364,7 +484,11 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
                 color: Colors.white.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.rocket_launch, color: Colors.white, size: 24),
+              child: const Icon(
+                Icons.rocket_launch,
+                color: Colors.white,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -394,7 +518,7 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
         ),
       ),
       content: SizedBox(
-        width: 520,
+        width: isCompact ? MediaQuery.sizeOf(context).width * 0.75 : 520,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,75 +531,165 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.border),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Column(
-                    children: [
-                      const Text(
-                        'सध्याची आवृत्ती',
-                        style: TextStyle(fontSize: 11, color: AppColors.textMuted),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'v${info.currentVersion}',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Icon(Icons.arrow_forward_rounded, color: AppColors.primary),
-                  Column(
-                    children: [
-                      const Text(
-                        'नवीन उपलब्ध आवृत्ती',
-                        style: TextStyle(fontSize: 11, color: AppColors.textMuted),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.gradeA1.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: AppColors.gradeA1),
-                        ),
-                        child: Text(
-                          'v${info.latestVersion}',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.gradeA1,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (info.releaseDate.isNotEmpty)
-                    Column(
+              child: isCompact
+                  ? Column(
                       children: [
-                        const Text(
-                          'रिलीज तारीख',
-                          style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            Flexible(
+                              child: Column(
+                                children: [
+                                  const Text(
+                                    'सध्याची आवृत्ती',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textMuted,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'v${info.currentVersion}',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: AppColors.primary,
+                            ),
+                            Flexible(
+                              child: Column(
+                                children: [
+                                  const Text(
+                                    'नवीन उपलब्ध आवृत्ती',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textMuted,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'v${info.latestVersion}',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.gradeA1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          info.releaseDate,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        if (info.releaseDate.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'रिलीज तारीख: ${info.releaseDate}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Column(
+                          children: [
+                            const Text(
+                              'सध्याची आवृत्ती',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'v${info.currentVersion}',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
                         ),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: AppColors.primary,
+                        ),
+                        Column(
+                          children: [
+                            const Text(
+                              'नवीन उपलब्ध आवृत्ती',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.gradeA1.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: AppColors.gradeA1),
+                              ),
+                              child: Text(
+                                'v${info.latestVersion}',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.gradeA1,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (info.releaseDate.isNotEmpty)
+                          Column(
+                            children: [
+                              const Text(
+                                'रिलीज तारीख',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                info.releaseDate,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
-                ],
-              ),
             ),
             const SizedBox(height: 16),
 
             // Changelog / Release Notes
             const Text(
               'सुधारणा व नवीन वैशिष्ट्ये (What\'s New):',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
             ),
             const SizedBox(height: 6),
             Container(
@@ -491,7 +705,11 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
                   info.releaseNotes.isNotEmpty
                       ? info.releaseNotes
                       : '• कार्यक्षमता व सुरक्षेत सुधारणा\n• महाराष्ट्र CCE नियमावलीनुसार मूल्यांकन व गॅझेट सुधारणा\n• बग फिक्स व वेग वाढवला',
-                  style: const TextStyle(fontSize: 12, height: 1.5, color: Color(0xFF334155)),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.5,
+                    color: Color(0xFF334155),
+                  ),
                 ),
               ),
             ),
@@ -510,13 +728,25 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    _statusText,
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
+                  Expanded(
+                    child: Text(
+                      _statusText,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   Text(
                     '${(_downloadProgress * 100).toInt()}%',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.gradeA1),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.gradeA1,
+                    ),
                   ),
                 ],
               ),
@@ -533,22 +763,36 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle, size: 16, color: AppColors.gradeA1),
+                    const Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color: AppColors.gradeA1,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'फाईल सेव्ह झाली: $_downloadedFilePath',
-                        style: const TextStyle(fontSize: 11, color: AppColors.textPrimary),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textPrimary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        Process.run('explorer.exe', ['/select,', _downloadedFilePath!]);
-                      },
-                      child: const Text('फोल्डर उघडा', style: TextStyle(fontSize: 11)),
-                    ),
+                    if (!Platform.isAndroid)
+                      TextButton(
+                        onPressed: () {
+                          Process.run('explorer.exe', [
+                            '/select,',
+                            _downloadedFilePath!,
+                          ]);
+                        },
+                        child: const Text(
+                          'फोल्डर उघडा',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -575,13 +819,22 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
               ? const SizedBox(
                   width: 14,
                   height: 14,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
                 )
               : const Icon(Icons.download, size: 16),
           label: Text(
             _isDownloading
                 ? 'डाउनलोड होत आहे...'
-                : (_downloadedFilePath != null ? 'पुन्हा रन करा' : 'आता अपडेट करा'),
+                : Platform.isAndroid
+                ? (_downloadedFilePath != null
+                      ? 'इन्स्टॉल करा'
+                      : (hasAndroidApk ? 'APK डाउनलोड करा' : 'APK मिळवा'))
+                : (_downloadedFilePath != null
+                      ? 'पुन्हा रन करा'
+                      : 'आता अपडेट करा'),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,

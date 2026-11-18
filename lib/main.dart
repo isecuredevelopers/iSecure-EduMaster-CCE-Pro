@@ -1,9 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'core/services/app_update_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_colors.dart';
 import 'providers/app_state_provider.dart';
 import 'widgets/app_sidebar.dart';
+import 'widgets/windows_page_nav_bar.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/school_settings/school_settings_screen.dart';
 import 'screens/students/students_list_screen.dart';
@@ -32,9 +36,40 @@ import 'screens/teachers/teacher_service_screen.dart';
 import 'screens/admin_registers/inward_outward_health_screen.dart';
 import 'screens/students/student_id_cards_screen.dart';
 import 'screens/tools/saral_udise_sync_screen.dart';
+import 'screens/portal/ebooks_library_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Container(
+      color: const Color(0xFFF8FAFC),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.info_outline, color: Color(0xFF1E88E5), size: 36),
+          const SizedBox(height: 10),
+          const Text(
+            'घटक लोड करताना अडचण आली (कृपया रीफ्रेश करा)',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            details.exceptionAsString(),
+            style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  };
   runApp(const MySchoolApp());
 }
 
@@ -64,11 +99,163 @@ class MainShellScreen extends StatefulWidget {
 
 class _MainShellScreenState extends State<MainShellScreen> {
   int _currentIndex = 0;
+  final List<int> _backStack = [];
+  final List<int> _forwardStack = [];
+  AppStateProvider? _observedState;
+  String? _shownUpdateVersion;
+  String? _lastSessionUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_handleHardwareKey);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final state = context.read<AppStateProvider>();
+    if (identical(_observedState, state)) return;
+    _observedState?.removeListener(_handleStateChange);
+    _observedState = state;
+    _lastSessionUserId = state.isLoggedIn ? state.currentUser?.id : null;
+    if (state.isLoggedIn && (state.currentUser?.isStudent ?? false)) {
+      _currentIndex = _normalizeIndex(_currentIndex, true);
+    }
+    state.addListener(_handleStateChange);
+    _handleStateChange();
+  }
+
+  void _handleStateChange() {
+    final state = _observedState;
+    if (!mounted || state == null) return;
+
+    final userId = state.isLoggedIn ? state.currentUser?.id : null;
+    if (userId != _lastSessionUserId) {
+      _lastSessionUserId = userId;
+      final defaultIndex = _homeIndex(state.currentUser?.isStudent ?? false);
+      if (_currentIndex != defaultIndex ||
+          _backStack.isNotEmpty ||
+          _forwardStack.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _currentIndex = defaultIndex;
+            _backStack.clear();
+            _forwardStack.clear();
+          });
+        });
+      }
+    }
+
+    _showAvailableUpdate();
+  }
+
+  void _showAvailableUpdate() {
+    final update = _observedState?.automaticUpdatePrompt;
+    if (!mounted ||
+        update == null ||
+        !update.hasUpdate ||
+        _shownUpdateVersion == update.latestVersion) {
+      return;
+    }
+    _shownUpdateVersion = update.latestVersion;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AppUpdateService.showUpdateModal(context, update);
+    });
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleHardwareKey);
+    _observedState?.removeListener(_handleStateChange);
+    super.dispose();
+  }
+
+  int _homeIndex(bool isStudent) => isStudent ? 15 : 0;
+
+  int _normalizeIndex(int index, bool isStudent) {
+    if (isStudent) {
+      const allowed = {5, 6, 15, 25, 27};
+      return allowed.contains(index) ? index : 15;
+    }
+    return (index >= 0 && index <= 27) ? index : 0;
+  }
+
+  bool _canGoBack(bool isStudent) {
+    final current = _normalizeIndex(_currentIndex, isStudent);
+    return _backStack.isNotEmpty || current != _homeIndex(isStudent);
+  }
+
+  int? _previousPageIndex(bool isStudent) {
+    if (_backStack.isNotEmpty) return _backStack.last;
+    final current = _normalizeIndex(_currentIndex, isStudent);
+    final home = _homeIndex(isStudent);
+    return current != home ? home : null;
+  }
 
   void _navigateTo(int index) {
+    final isStudent = _observedState?.currentUser?.isStudent ?? false;
+    final current = _normalizeIndex(_currentIndex, isStudent);
+    final target = _normalizeIndex(index, isStudent);
+    if (target == current) return;
+
     setState(() {
-      _currentIndex = index;
+      _backStack.add(current);
+      if (_backStack.length > 50) {
+        _backStack.removeAt(0);
+      }
+      _forwardStack.clear();
+      _currentIndex = target;
     });
+  }
+
+  void _goBack(bool isStudent) {
+    final current = _normalizeIndex(_currentIndex, isStudent);
+    final home = _homeIndex(isStudent);
+    if (_backStack.isNotEmpty) {
+      setState(() {
+        _forwardStack.add(current);
+        _currentIndex = _backStack.removeLast();
+      });
+    } else if (current != home) {
+      setState(() {
+        _forwardStack.add(current);
+        _currentIndex = home;
+      });
+    }
+  }
+
+  void _goForward(bool isStudent) {
+    if (_forwardStack.isEmpty) return;
+    final current = _normalizeIndex(_currentIndex, isStudent);
+    setState(() {
+      _backStack.add(current);
+      _currentIndex = _forwardStack.removeLast();
+    });
+  }
+
+  bool _handleHardwareKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    if (!mounted) return false;
+    final state = _observedState;
+    if (state == null || state.isLoading || !state.isLoggedIn) return false;
+    if (ModalRoute.of(context)?.isCurrent != true) return false;
+    if (!HardwareKeyboard.instance.isAltPressed) return false;
+
+    final isStudent = state.currentUser?.isStudent ?? false;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      if (_canGoBack(isStudent)) {
+        _goBack(isStudent);
+        return true;
+      }
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      if (_forwardStack.isNotEmpty) {
+        _goForward(isStudent);
+        return true;
+      }
+    }
+    return false;
   }
 
   @override
@@ -102,14 +289,20 @@ class _MainShellScreenState extends State<MainShellScreen> {
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
                       color: const Color(0xFF0284C7),
-                      child: const Icon(Icons.school, color: Colors.white, size: 48),
+                      child: const Icon(
+                        Icons.school,
+                        color: Colors.white,
+                        size: 48,
+                      ),
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
               Text(
-                state.school.schoolName.isNotEmpty ? state.school.schoolName : 'जिल्हा परिषद प्राथमिक शाळा',
+                state.school.schoolName.isNotEmpty
+                    ? state.school.schoolName
+                    : 'जिल्हा परिषद प्राथमिक शाळा',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -152,6 +345,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
           break;
         case 25:
           currentScreen = const StudentIdCardsScreen();
+          break;
+        case 27:
+          currentScreen = const EbooksLibraryScreen();
           break;
         case 15:
         case 0:
@@ -241,12 +437,54 @@ class _MainShellScreenState extends State<MainShellScreen> {
         case 26:
           currentScreen = const SaralUdiseSyncScreen();
           break;
+        case 27:
+          currentScreen = const EbooksLibraryScreen();
+          break;
         default:
           currentScreen = DashboardScreen(onNavigate: _navigateTo);
       }
     }
 
+    final isStudent = state.currentUser?.isStudent ?? false;
+    final effectiveIndex = _normalizeIndex(_currentIndex, isStudent);
+    final isWindows = !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
     final isMobile = MediaQuery.of(context).size.width < 900;
+    final homeIndex = _homeIndex(isStudent);
+    final prevIndex = _previousPageIndex(isStudent);
+    final nextIndex = _forwardStack.isNotEmpty ? _forwardStack.last : null;
+
+    Widget buildContentWithWindowsNavBar() {
+      return Column(
+        children: [
+          WindowsPageNavBar(
+            canGoBack: _canGoBack(isStudent),
+            canGoForward: _forwardStack.isNotEmpty,
+            isHome: effectiveIndex == homeIndex,
+            currentTitle: WindowsPageNavBar.titleForIndex(
+              effectiveIndex,
+              isStudent: isStudent,
+            ),
+            previousTitle: prevIndex != null
+                ? WindowsPageNavBar.titleForIndex(
+                    prevIndex,
+                    isStudent: isStudent,
+                  )
+                : null,
+            nextTitle: nextIndex != null
+                ? WindowsPageNavBar.titleForIndex(
+                    nextIndex,
+                    isStudent: isStudent,
+                  )
+                : null,
+            homeLabel: isStudent ? 'पोर्टल' : 'डॅशबोर्ड',
+            onBack: () => _goBack(isStudent),
+            onForward: () => _goForward(isStudent),
+            onHome: () => _navigateTo(homeIndex),
+          ),
+          Expanded(child: currentScreen),
+        ],
+      );
+    }
 
     if (isMobile) {
       return Scaffold(
@@ -254,7 +492,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
           backgroundColor: AppColors.sidebarBg,
           foregroundColor: Colors.white,
           title: Text(
-            _currentIndex == 15
+            effectiveIndex == 15
                 ? 'विद्यार्थी व पालक पोर्टल 📱'
                 : 'iSecure EduMaster CCE Pro',
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
@@ -270,7 +508,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
         drawer: Drawer(
           child: Builder(
             builder: (drawerCtx) => AppSidebar(
-              selectedIndex: _currentIndex,
+              selectedIndex: effectiveIndex,
               onDestinationSelected: (idx) {
                 Navigator.of(drawerCtx).pop();
                 _navigateTo(idx);
@@ -278,7 +516,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
             ),
           ),
         ),
-        body: currentScreen,
+        body: isWindows ? buildContentWithWindowsNavBar() : currentScreen,
       );
     }
 
@@ -287,11 +525,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
         children: [
           // Fixed Left Navigation Rail
           AppSidebar(
-            selectedIndex: _currentIndex,
+            selectedIndex: effectiveIndex,
             onDestinationSelected: _navigateTo,
           ),
-          // Main Content View
-          Expanded(child: currentScreen),
+          // Main Content View with Windows Back Navigation Bar
+          Expanded(child: buildContentWithWindowsNavBar()),
         ],
       ),
     );

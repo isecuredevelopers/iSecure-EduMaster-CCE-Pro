@@ -302,6 +302,12 @@ class AppSidebar extends StatelessWidget {
                     Icons.badge,
                     'डिजिटल ओळखपत्र (ID Card 🪪)',
                   ),
+                  _buildNavItem(
+                    27,
+                    Icons.menu_book_outlined,
+                    Icons.menu_book,
+                    'ई-बुक्स व अभ्यासक्रम (E-Books 📚)',
+                  ),
                 ] else ...[
                   _buildNavItem(
                     0,
@@ -409,6 +415,12 @@ class AppSidebar extends StatelessWidget {
                     Icons.assignment_outlined,
                     Icons.assignment,
                     'स्वाध्याय व परीक्षा (HW & Exams)',
+                  ),
+                  _buildNavItem(
+                    27,
+                    Icons.menu_book_outlined,
+                    Icons.menu_book,
+                    'ई-पुस्तके व अभ्यासक्रम (E-Books 📚)',
                   ),
 
                   _buildSectionHeader(

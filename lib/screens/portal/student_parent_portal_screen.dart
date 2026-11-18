@@ -5,7 +5,7 @@ import '../../data/models/homework_model.dart';
 import '../../data/models/online_exam_model.dart';
 import '../../data/models/student_model.dart';
 import '../../providers/app_state_provider.dart';
-import 'chapter_detail_screen.dart';
+import 'ebooks_library_screen.dart';
 import 'exam_player_screen.dart';
 
 class StudentParentPortalScreen extends StatefulWidget {
@@ -1307,155 +1307,18 @@ class _StudentParentPortalScreenState extends State<StudentParentPortalScreen> {
   }
 
   // ----------------------------------------------------
-  // Tab 4: E-Learning Curriculum (पुणे विद्यापीठ / SCERT बालभारती)
+  // Tab 4: E-Learning Curriculum (पुणे / बालभारती ई-पुस्तके व अभ्यासक्रम)
   // ----------------------------------------------------
   Widget _buildCurriculumTab(StudentModel student, AppStateProvider provider) {
-    final subjects = CurriculumRepository.getSubjectsForStandard(_curriculumSelectedStd);
-
-    return Column(
-      children: [
-        // Class Selector Pills (इ. १ ली ते ७ वी)
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-          color: Colors.white,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'इयत्ता निवडा (Class):',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  ),
-                  Text(
-                    'पुणे विद्यापीठ / SCERT अभ्यासक्रम',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: List.generate(7, (idx) {
-                    final std = idx + 1;
-                    final isSelected = std == _curriculumSelectedStd;
-
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text('इयत्ता $std ली'),
-                        selected: isSelected,
-                        selectedColor: const Color(0xFF1E88E5),
-                        labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black87,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
-                        onSelected: (_) {
-                          setState(() {
-                            _curriculumSelectedStd = std;
-                          });
-                        },
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Subjects & Chapters List
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: subjects.length,
-            itemBuilder: (context, sIdx) {
-              final sub = subjects[sIdx];
-              final themeColor = Color(sub.colorHex);
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 14),
-                color: Colors.white,
-                elevation: 1,
-                shadowColor: Colors.black.withOpacity(0.04),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(color: Colors.grey.shade200),
-                ),
-                child: Theme(
-                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                  child: ExpansionTile(
-                    initiallyExpanded: sIdx == 0,
-                    leading: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: themeColor.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.book, color: themeColor, size: 24),
-                    ),
-                    title: Text(
-                      sub.subjectName,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: themeColor,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${sub.bookTitle} • ${sub.chapters.length} धडे',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                    ),
-                    children: [
-                      const Divider(height: 1),
-                      ...sub.chapters.map((ch) {
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          leading: CircleAvatar(
-                            radius: 14,
-                            backgroundColor: themeColor.withOpacity(0.1),
-                            foregroundColor: themeColor,
-                            child: Text(
-                              '${ch.chapterNumber}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                            ),
-                          ),
-                          title: Text(
-                            ch.chapterTitle,
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                          ),
-                          subtitle: Text(
-                            ch.summary,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                          ),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ChapterDetailScreen(
-                                  subject: sub,
-                                  chapter: ch,
-                                  student: student,
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      }),
-                      const SizedBox(height: 8),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+    final validStd = (_curriculumSelectedStd > 0 ? _curriculumSelectedStd : student.standard).clamp(1, 7);
+    return CurriculumEbooksBody(
+      selectedStandard: validStd,
+      onStandardChanged: (std) {
+        setState(() {
+          _curriculumSelectedStd = std.clamp(1, 7);
+        });
+      },
+      student: student,
     );
   }
 

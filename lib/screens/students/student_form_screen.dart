@@ -524,10 +524,11 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                   );
                                 }).toList(),
                                 onChanged: (val) {
-                                  if (val != null)
+                                  if (val != null) {
                                     setState(
                                       () => _selectedAcademicYearId = val,
                                     );
+                                  }
                                 },
                               ),
                             ),
@@ -683,8 +684,9 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                   ),
                                 ],
                                 onChanged: (val) {
-                                  if (val != null)
+                                  if (val != null) {
                                     setState(() => _gender = val);
+                                  }
                                 },
                               ),
                             ),
@@ -818,8 +820,9 @@ class _StudentFormScreenState extends State<StudentFormScreen> {
                                   ),
                                 ],
                                 onChanged: (val) {
-                                  if (val != null)
+                                  if (val != null) {
                                     setState(() => _casteCategory = val);
+                                  }
                                 },
                               ),
                             ),
