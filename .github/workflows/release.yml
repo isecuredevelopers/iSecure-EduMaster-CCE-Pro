@@ -32,10 +32,19 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Build Windows Executable
         run: flutter build windows --release
 
-      - name: Package Release ZIP
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Package Release Files
         shell: pwsh
         run: |
           $ver = "${{ github.ref_name }}"
@@ -43,7 +52,8 @@ jobs:
           if (-not $ver) { $ver = "1.0.0" }
           $zipName = "iSecure-EduMaster-CCE-Pro-$ver-Windows.zip"
           Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $zipName
-          Write-Host "Created release package: $zipName"
+          Copy-Item -Path "build\app\outputs\flutter-apk\app-release.apk" -Destination "iSecure-EduMaster-CCE-Pro-$ver-Android.apk"
+          Write-Host "Created release packages: $zipName and iSecure-EduMaster-CCE-Pro-$ver-Android.apk"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
@@ -63,6 +73,7 @@ jobs:
             - ऑटोमॅटिक इन-ॲप अपडेट यंत्रणा
           files: |
             iSecure-EduMaster-CCE-Pro-*-Windows.zip
+            iSecure-EduMaster-CCE-Pro-*-Android.apk
             version.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
