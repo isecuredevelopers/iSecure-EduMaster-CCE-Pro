@@ -38,8 +38,8 @@ class AppUpdateInfo {
 }
 
 class AppUpdateService {
-  static String currentVersion = '1.4.0';
-  static String buildNumber = '5';
+  static String currentVersion = '1.4.1';
+  static String buildNumber = '6';
   static const String githubOwner = 'isecuredevelopers';
   static const String githubRepo = 'iSecure-EduMaster-CCE-Pro';
   static const String repoUrl =
