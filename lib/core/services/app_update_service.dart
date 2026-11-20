@@ -458,17 +458,14 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
   @override
   Widget build(BuildContext context) {
     final info = widget.info;
-    final isCompact = MediaQuery.sizeOf(context).width < 600;
-    final hasAndroidApk =
-        info.downloadUrl?.toLowerCase().split('?').first.endsWith('.apk') ==
-        true;
+    final isCompact = MediaQuery.sizeOf(context).width < 500;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       titlePadding: EdgeInsets.zero,
-      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+      contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       title: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: const BoxDecoration(
           color: AppColors.primary,
           borderRadius: BorderRadius.only(
@@ -476,343 +473,170 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
             topRight: Radius.circular(16),
           ),
         ),
-        child: Row(
+        child: const Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.rocket_launch,
-                color: Colors.white,
-                size: 24,
-              ),
+            Icon(
+              Icons.system_update_rounded,
+              color: Colors.white,
+              size: 24,
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'नवीन व्हर्जन अपडेट उपलब्ध!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'iSecure Systems • ${info.releaseTitle}',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+              child: Text(
+                'नवीन व्हर्जन अपडेट (New Version Update)',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
         ),
       ),
       content: SizedBox(
-        width: isCompact ? MediaQuery.sizeOf(context).width * 0.75 : 520,
+        width: isCompact ? MediaQuery.sizeOf(context).width * 0.8 : 380,
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Version comparison row
+            // Old Version and New Version comparison box
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: isCompact
-                  ? Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Flexible(
-                              child: Column(
-                                children: [
-                                  const Text(
-                                    'सध्याची आवृत्ती',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.textMuted,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'v${info.currentVersion}',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(
-                              Icons.arrow_forward_rounded,
-                              color: AppColors.primary,
-                            ),
-                            Flexible(
-                              child: Column(
-                                children: [
-                                  const Text(
-                                    'नवीन उपलब्ध आवृत्ती',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.textMuted,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'v${info.latestVersion}',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.gradeA1,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (info.releaseDate.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            'रिलीज तारीख: ${info.releaseDate}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ],
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Column(
-                          children: [
-                            const Text(
-                              'सध्याची आवृत्ती',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'v${info.currentVersion}',
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_rounded,
-                          color: AppColors.primary,
-                        ),
-                        Column(
-                          children: [
-                            const Text(
-                              'नवीन उपलब्ध आवृत्ती',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.gradeA1.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: AppColors.gradeA1),
-                              ),
-                              child: Text(
-                                'v${info.latestVersion}',
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.gradeA1,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (info.releaseDate.isNotEmpty)
-                          Column(
-                            children: [
-                              const Text(
-                                'रिलीज तारीख',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                info.releaseDate,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-            ),
-            const SizedBox(height: 16),
-
-            // Changelog / Release Notes
-            const Text(
-              'सुधारणा व नवीन वैशिष्ट्ये (What\'s New):',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              constraints: const BoxConstraints(maxHeight: 140),
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
-              child: SingleChildScrollView(
-                child: Text(
-                  info.releaseNotes.isNotEmpty
-                      ? info.releaseNotes
-                      : '• कार्यक्षमता व सुरक्षेत सुधारणा\n• महाराष्ट्र CCE नियमावलीनुसार मूल्यांकन व गॅझेट सुधारणा\n• बग फिक्स व वेग वाढवला',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    height: 1.5,
-                    color: Color(0xFF334155),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Download Progress Bar if downloading
-            if (_isDownloading || _downloadProgress > 0) ...[
-              LinearProgressIndicator(
-                value: _downloadProgress,
-                backgroundColor: const Color(0xFFE2E8F0),
-                color: AppColors.gradeA1,
-                minHeight: 8,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Expanded(
-                    child: Text(
-                      _statusText,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                  // Old Version
+                  Flexible(
+                    child: Column(
+                      children: [
+                        const Text(
+                          'जुनी आवृत्ती\n(Old Version)',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'v${info.currentVersion}',
+                            style: const TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Text(
-                    '${(_downloadProgress * 100).toInt()}%',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.gradeA1,
+
+                  // Arrow
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Icon(
+                      Icons.arrow_forward_rounded,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
+                  ),
+
+                  // New Version
+                  Flexible(
+                    child: Column(
+                      children: [
+                        const Text(
+                          'नवीन आवृत्ती\n(New Version)',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF86EFAC)),
+                          ),
+                          child: Text(
+                            'v${info.latestVersion}',
+                            style: const TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF15803D),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-            ],
+            ),
 
-            if (_downloadedFilePath != null)
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.gradeA1.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: AppColors.gradeA1),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.check_circle,
-                      size: 16,
-                      color: AppColors.gradeA1,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'फाईल सेव्ह झाली: $_downloadedFilePath',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (!Platform.isAndroid)
-                      TextButton(
-                        onPressed: () {
-                          Process.run('explorer.exe', [
-                            '/select,',
-                            _downloadedFilePath!,
-                          ]);
-                        },
-                        child: const Text(
-                          'फोल्डर उघडा',
-                          style: TextStyle(fontSize: 11),
-                        ),
-                      ),
-                  ],
+            // Download Progress Bar if downloading
+            if (_isDownloading || _downloadProgress > 0) ...[
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: _downloadProgress > 0 ? _downloadProgress : null,
+                  backgroundColor: const Color(0xFFE2E8F0),
+                  color: AppColors.primary,
+                  minHeight: 8,
                 ),
               ),
+              const SizedBox(height: 8),
+              Text(
+                _statusText.isNotEmpty
+                    ? _statusText
+                    : 'अपडेट डाउनलोड होत आहे...',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
           ],
         ),
       ),
-      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       actions: [
-        if (!info.isMandatory)
+        if (!info.isMandatory && !_isDownloading)
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('नंतर करा (Remind Later)'),
+            child: const Text(
+              'रद्द करा (Cancel)',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
           ),
-        OutlinedButton.icon(
-          onPressed: () {
-            AppUpdateService.launchUrl(info.releasePageUrl);
-          },
-          icon: const Icon(Icons.open_in_browser, size: 16),
-          label: const Text('GitHub वर पहा'),
-        ),
         ElevatedButton.icon(
           onPressed: _isDownloading ? null : _startDirectDownload,
           icon: _isDownloading
@@ -824,21 +648,25 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
                     strokeWidth: 2,
                   ),
                 )
-              : const Icon(Icons.download, size: 16),
+              : const Icon(Icons.download_rounded, size: 18),
           label: Text(
             _isDownloading
                 ? 'डाउनलोड होत आहे...'
-                : Platform.isAndroid
-                ? (_downloadedFilePath != null
-                      ? 'इन्स्टॉल करा'
-                      : (hasAndroidApk ? 'APK डाउनलोड करा' : 'APK मिळवा'))
-                : (_downloadedFilePath != null
-                      ? 'पुन्हा रन करा'
-                      : 'आता अपडेट करा'),
+                : (_downloadedFilePath != null && Platform.isAndroid)
+                ? 'इन्स्टॉल करा'
+                : 'अपडेट करा (Update)',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13.5,
+            ),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ),
       ],
