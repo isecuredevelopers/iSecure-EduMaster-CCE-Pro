@@ -38,8 +38,8 @@ class AppUpdateInfo {
 }
 
 class AppUpdateService {
-  static String currentVersion = '1.4.1';
-  static String buildNumber = '6';
+  static String currentVersion = '1.4.2';
+  static String buildNumber = '7';
   static const String githubOwner = 'isecuredevelopers';
   static const String githubRepo = 'iSecure-EduMaster-CCE-Pro';
   static const String repoUrl =
@@ -248,7 +248,7 @@ class AppUpdateService {
     return null;
   }
 
-  /// Download the installer on desktop or the APK into Android's private cache.
+  /// Download the installer on desktop or the APK into Android's private cache with auto-resume.
   static Future<void> downloadInstaller({
     required String downloadUrl,
     required String fileName,
@@ -282,41 +282,135 @@ class AppUpdateService {
           : '${downloadDir.path}/$safeFileName';
       final file = File(filePath);
 
-      final client = HttpClient();
-      client.connectionTimeout = const Duration(seconds: 15);
-      final request = await client.getUrl(Uri.parse(downloadUrl));
-      request.headers.set('User-Agent', 'iSecure-EduMaster-CCE-Pro');
-      final response = await request.close();
+      int downloadedBytes = 0;
+      int totalBytes = -1;
+      int retryCount = 0;
+      const maxRetries = 6;
+      String currentUrl = downloadUrl;
 
-      if (response.statusCode != 200) {
-        onError('डाउनलोड अयशस्वी: सर्व्हर एरर ${response.statusCode}');
-        client.close();
-        return;
+      // Resolve redirects upfront to get the direct CDN download URL
+      final resolveClient = HttpClient();
+      resolveClient.connectionTimeout = const Duration(seconds: 20);
+      try {
+        var headReq = await resolveClient.getUrl(Uri.parse(currentUrl));
+        headReq.followRedirects = false;
+        var headRes = await headReq.close();
+        while (headRes.isRedirect &&
+            headRes.headers.value(HttpHeaders.locationHeader) != null) {
+          final loc = headRes.headers.value(HttpHeaders.locationHeader)!;
+          currentUrl = Uri.parse(currentUrl).resolve(loc).toString();
+          headReq = await resolveClient.getUrl(Uri.parse(currentUrl));
+          headReq.followRedirects = false;
+          headRes = await headReq.close();
+        }
+      } catch (_) {
+        currentUrl = downloadUrl;
+      } finally {
+        resolveClient.close();
       }
 
-      final contentLength = response.contentLength;
-      final sink = file.openWrite();
-      int bytesDownloaded = 0;
+      if (await file.exists()) {
+        downloadedBytes = await file.length();
+      } else {
+        downloadedBytes = 0;
+      }
 
-      await for (var chunk in response) {
-        bytesDownloaded += chunk.length;
-        sink.add(chunk);
-        if (contentLength > 0) {
-          onProgress(
-            bytesDownloaded / contentLength,
-            bytesDownloaded,
-            contentLength,
+      while (retryCount < maxRetries) {
+        HttpClient? client;
+        IOSink? sink;
+        try {
+          client = HttpClient();
+          client.connectionTimeout = const Duration(seconds: 30);
+          client.idleTimeout = const Duration(seconds: 60);
+
+          final request = await client.getUrl(Uri.parse(currentUrl));
+          request.headers.set(
+            'User-Agent',
+            'Mozilla/5.0 (Linux; Android) iSecure-EduMaster-CCE-Pro',
           );
-        } else {
-          onProgress(0.5, bytesDownloaded, -1);
+          request.headers.set('Accept-Encoding', 'identity');
+
+          if (downloadedBytes > 0) {
+            request.headers.set('Range', 'bytes=$downloadedBytes-');
+          }
+
+          final response = await request.close();
+
+          if (response.isRedirect &&
+              response.headers.value(HttpHeaders.locationHeader) != null) {
+            final loc = response.headers.value(HttpHeaders.locationHeader)!;
+            currentUrl = Uri.parse(currentUrl).resolve(loc).toString();
+            client.close();
+            continue;
+          }
+
+          final isPartial = response.statusCode == HttpStatus.partialContent;
+          final isOk = response.statusCode == HttpStatus.ok;
+
+          if (!isPartial && !isOk) {
+            if (response.statusCode == 416 && downloadedBytes > 0) {
+              client.close();
+              onComplete(filePath);
+              return;
+            }
+            throw HttpException('सर्व्हर एरर: ${response.statusCode}');
+          }
+
+          if (isPartial) {
+            sink = file.openWrite(mode: FileMode.append);
+            if (totalBytes <= 0 && response.contentLength > 0) {
+              totalBytes = downloadedBytes + response.contentLength;
+            }
+          } else {
+            downloadedBytes = 0;
+            totalBytes = response.contentLength;
+            sink = file.openWrite(mode: FileMode.write);
+          }
+
+          await for (var chunk in response) {
+            downloadedBytes += chunk.length;
+            sink.add(chunk);
+            if (totalBytes > 0) {
+              onProgress(
+                (downloadedBytes / totalBytes).clamp(0.0, 1.0),
+                downloadedBytes,
+                totalBytes,
+              );
+            } else {
+              onProgress(0.5, downloadedBytes, -1);
+            }
+          }
+
+          await sink.flush();
+          await sink.close();
+          sink = null;
+          client.close();
+          client = null;
+
+          onComplete(filePath);
+          return;
+        } catch (e) {
+          try {
+            await sink?.flush();
+            await sink?.close();
+          } catch (_) {}
+          client?.close();
+
+          retryCount++;
+          if (await file.exists()) {
+            downloadedBytes = await file.length();
+          }
+
+          if (retryCount >= maxRetries) {
+            onError(
+              'डाउनलोड पूर्ण होऊ शकले नाही. कृपया इंटरनेट तपासा किंवा पुन्हा प्रयत्न करा.',
+            );
+            return;
+          }
+
+          await Future.delayed(Duration(seconds: retryCount));
         }
       }
-
-      await sink.flush();
-      await sink.close();
-      client.close();
-
-      onComplete(filePath);
     } catch (e) {
       onError('डाउनलोड करताना त्रुटी आली: $e');
     }
@@ -346,6 +440,7 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
   double _downloadProgress = 0.0;
   String _statusText = '';
   String? _downloadedFilePath;
+  bool _hasError = false;
 
   Future<void> _startDirectDownload() async {
     final url = widget.info.downloadUrl;
@@ -359,7 +454,6 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
       return;
     }
 
-    // If it's a direct link to github releases page rather than .exe, open browser
     final isInstallableAsset = Platform.isAndroid
         ? url.toLowerCase().split('?').first.endsWith('.apk')
         : url.toLowerCase().split('?').first.endsWith('.exe') ||
@@ -371,6 +465,7 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
 
     setState(() {
       _isDownloading = true;
+      _hasError = false;
       _downloadProgress = 0.0;
       _statusText = 'डाउनलोड सुरू होत आहे...';
     });
@@ -401,10 +496,11 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
         if (!mounted) return;
         setState(() {
           _isDownloading = false;
+          _hasError = false;
           _downloadProgress = 1.0;
           _downloadedFilePath = filePath;
           _statusText = Platform.isAndroid
-              ? 'डाउनलोड पूर्ण. Android इन्स्टॉलर उघडत आहे...'
+              ? 'डाउनलोड पूर्ण. इन्स्टॉलर उघडत आहे...'
               : 'डाउनलोड पूर्ण झाले!';
         });
 
@@ -430,6 +526,7 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
         if (!mounted) return;
         setState(() {
           _isDownloading = false;
+          _hasError = true;
           _statusText = err;
         });
       },
@@ -599,28 +696,30 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
               ),
             ),
 
-            // Download Progress Bar if downloading
-            if (_isDownloading || _downloadProgress > 0) ...[
+            // Download Progress Bar if downloading or status
+            if (_isDownloading || _downloadProgress > 0 || _hasError) ...[
               const SizedBox(height: 16),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: LinearProgressIndicator(
-                  value: _downloadProgress > 0 ? _downloadProgress : null,
-                  backgroundColor: const Color(0xFFE2E8F0),
-                  color: AppColors.primary,
-                  minHeight: 8,
+              if (!_hasError) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: _downloadProgress > 0 ? _downloadProgress : null,
+                    backgroundColor: const Color(0xFFE2E8F0),
+                    color: AppColors.primary,
+                    minHeight: 8,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
+              ],
               Text(
                 _statusText.isNotEmpty
                     ? _statusText
                     : 'अपडेट डाउनलोड होत आहे...',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+                  color: _hasError ? const Color(0xFFDC2626) : AppColors.primary,
                 ),
               ),
             ],
@@ -629,46 +728,68 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
       ),
       actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       actions: [
-        if (!info.isMandatory && !_isDownloading)
+        if (_hasError) ...[
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              final directUrl = widget.info.downloadUrl ?? widget.info.releasePageUrl;
+              AppUpdateService.launchUrl(directUrl);
+            },
             child: const Text(
-              'रद्द करा (Cancel)',
-              style: TextStyle(color: AppColors.textMuted),
+              'ब्राउझरमध्ये डाउनलोड करा',
+              style: TextStyle(fontSize: 12),
             ),
           ),
-        ElevatedButton.icon(
-          onPressed: _isDownloading ? null : _startDirectDownload,
-          icon: _isDownloading
-              ? const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : const Icon(Icons.download_rounded, size: 18),
-          label: Text(
-            _isDownloading
-                ? 'डाउनलोड होत आहे...'
-                : (_downloadedFilePath != null && Platform.isAndroid)
-                ? 'इन्स्टॉल करा'
-                : 'अपडेट करा (Update)',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 13.5,
+          ElevatedButton(
+            onPressed: _startDirectDownload,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+            child: const Text('पुन्हा प्रयत्न करा'),
+          ),
+        ] else ...[
+          if (!info.isMandatory && !_isDownloading)
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'रद्द करा (Cancel)',
+                style: TextStyle(color: AppColors.textMuted),
+              ),
+            ),
+          ElevatedButton.icon(
+            onPressed: _isDownloading ? null : _startDirectDownload,
+            icon: _isDownloading
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Icon(Icons.download_rounded, size: 18),
+            label: Text(
+              _isDownloading
+                  ? 'डाउनलोड होत आहे...'
+                  : (_downloadedFilePath != null && Platform.isAndroid)
+                  ? 'इन्स्टॉल करा'
+                  : 'अपडेट करा (Update)',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13.5,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
+        ],
       ],
     );
   }
