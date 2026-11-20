@@ -24,11 +24,23 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_URL", "A URL is required.", null)
                     } else {
                         try {
-                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(intent)
                             result.success(null)
                         } catch (error: Exception) {
                             result.error("URL_OPEN_FAILED", error.message, null)
                         }
+                    }
+                }
+
+                "getDownloadDirectory" -> {
+                    try {
+                        val dir = externalCacheDir ?: cacheDir
+                        result.success(dir.absolutePath)
+                    } catch (error: Exception) {
+                        result.success(cacheDir.absolutePath)
                     }
                 }
 
@@ -39,8 +51,8 @@ class MainActivity : FlutterActivity() {
                         return@setMethodCallHandler
                     }
                     val apkFile = File(filePath)
-                    if (!apkFile.isFile || !apkFile.name.endsWith(".apk", ignoreCase = true)) {
-                        result.error("APK_NOT_FOUND", "The downloaded APK was not found.", null)
+                    if (!apkFile.exists() || !apkFile.isFile) {
+                        result.error("APK_NOT_FOUND", "The downloaded APK was not found at $filePath", null)
                         return@setMethodCallHandler
                     }
 
@@ -50,6 +62,7 @@ class MainActivity : FlutterActivity() {
                         startActivity(
                             Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
                                 data = Uri.parse("package:$packageName")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             },
                         )
                         result.success(false)
@@ -57,21 +70,57 @@ class MainActivity : FlutterActivity() {
                     }
 
                     try {
-                        val apkUri = FileProvider.getUriForFile(
-                            this,
-                            "$packageName.fileprovider",
-                            apkFile,
-                        )
-                        startActivity(
-                            Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(
+                        // Ensure target file is in externalCacheDir or cacheDir for maximum FileProvider compatibility
+                        val targetDir = externalCacheDir ?: cacheDir
+                        val targetFile = if (apkFile.parentFile?.canonicalPath != targetDir.canonicalPath) {
+                            val dest = File(targetDir, apkFile.name)
+                            try {
+                                apkFile.copyTo(dest, overwrite = true)
+                                dest
+                            } catch (_: Exception) {
+                                apkFile
+                            }
+                        } else {
+                            apkFile
+                        }
+
+                        val apkUri = try {
+                            FileProvider.getUriForFile(
+                                this,
+                                "$packageName.fileprovider",
+                                targetFile,
+                            )
+                        } catch (_: Exception) {
+                            FileProvider.getUriForFile(
+                                this,
+                                "$packageName.fileprovider",
+                                apkFile,
+                            )
+                        }
+
+                        val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(
+                                apkUri,
+                                "application/vnd.android.package-archive",
+                            )
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+
+                        // Explicitly grant URI permission to resolving installer activities
+                        val resolveInfoList = packageManager.queryIntentActivities(installIntent, 0)
+                        for (resolveInfo in resolveInfoList) {
+                            val targetPackage = resolveInfo.activityInfo?.packageName
+                            if (!targetPackage.isNullOrBlank()) {
+                                grantUriPermission(
+                                    targetPackage,
                                     apkUri,
-                                    "application/vnd.android.package-archive",
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
                                 )
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            },
-                        )
+                            }
+                        }
+
+                        startActivity(installIntent)
                         result.success(true)
                     } catch (error: Exception) {
                         result.error("APK_INSTALL_FAILED", error.message, null)

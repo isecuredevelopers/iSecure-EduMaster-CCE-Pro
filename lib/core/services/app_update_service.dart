@@ -38,8 +38,8 @@ class AppUpdateInfo {
 }
 
 class AppUpdateService {
-  static String currentVersion = '1.4.2';
-  static String buildNumber = '7';
+  static String currentVersion = '1.4.3';
+  static String buildNumber = '8';
   static const String githubOwner = 'isecuredevelopers';
   static const String githubRepo = 'iSecure-EduMaster-CCE-Pro';
   static const String repoUrl =
@@ -111,6 +111,28 @@ class AppUpdateService {
           'filePath': filePath,
         }) ??
         false;
+  }
+
+  /// Get the safest download directory for installers.
+  /// On Android, requests native externalCacheDir/cacheDir to ensure FileProvider compatibility.
+  static Future<String> getDownloadDirectoryPath() async {
+    if (Platform.isAndroid) {
+      try {
+        final path = await _androidUpdateChannel.invokeMethod<String>(
+          'getDownloadDirectory',
+        );
+        if (path != null && path.trim().isNotEmpty) {
+          return path.trim();
+        }
+      } catch (e) {
+        debugPrint('Android getDownloadDirectory error: $e');
+      }
+      return Directory.systemTemp.path;
+    } else {
+      final userProfile =
+          Platform.environment['USERPROFILE'] ?? 'C:\\Users\\Default';
+      return '$userProfile\\Downloads\\iSecure_Updates';
+    }
   }
 
   /// Check online GitHub repository for new release
@@ -258,14 +280,8 @@ class AppUpdateService {
     required void Function(String error) onError,
   }) async {
     try {
-      final Directory downloadDir;
-      if (Platform.isAndroid) {
-        downloadDir = Directory.systemTemp;
-      } else {
-        final userProfile =
-            Platform.environment['USERPROFILE'] ?? 'C:\\Users\\Default';
-        downloadDir = Directory('$userProfile\\Downloads\\iSecure_Updates');
-      }
+      final downloadDirPath = await getDownloadDirectoryPath();
+      final downloadDir = Directory(downloadDirPath);
       if (!await downloadDir.exists()) {
         await downloadDir.create(recursive: true);
       }
@@ -542,13 +558,17 @@ class _UpdateDialogContentState extends State<_UpdateDialogContent> {
       );
       if (!mounted) return;
       setState(() {
+        _hasError = !installerOpened;
         _statusText = installerOpened
             ? 'इन्स्टॉलरमध्ये अपडेटची पुष्टी करा.'
             : 'या ॲपसाठी अज्ञात ॲप्स इन्स्टॉल करण्याची परवानगी द्या आणि पुन्हा प्रयत्न करा.';
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _statusText = 'इन्स्टॉलर उघडता आला नाही: $e');
+      setState(() {
+        _hasError = true;
+        _statusText = 'इन्स्टॉलर उघडताना अडचण आली: $e';
+      });
     }
   }
 
