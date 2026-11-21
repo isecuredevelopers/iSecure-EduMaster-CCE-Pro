@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/user_model.dart';
 import '../../providers/app_state_provider.dart';
+import '../../widgets/language_selector_sheet.dart';
 import '../../widgets/school_logo_widget.dart';
 import '../portal/student_parent_portal_screen.dart';
 
@@ -283,6 +284,52 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: isDesktop
                     ? _buildDesktopLayout(context, state, school)
                     : _buildCompactLayout(context, state, school),
+              ),
+            ),
+          ),
+
+          // Top-Right Quick Language Selector
+          Positioned(
+            top: 14,
+            right: 14,
+            child: SafeArea(
+              child: InkWell(
+                onTap: () => LanguageSelectorSheet.show(context),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        state.currentLanguage == 'mr'
+                            ? '🚩 मराठी'
+                            : state.currentLanguage == 'hi'
+                                ? '🇮🇳 हिंदी'
+                                : '🇬🇧 English',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 16),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

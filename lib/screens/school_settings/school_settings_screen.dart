@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/preset_logos.dart';
+import '../../core/localization/app_translations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../data/models/working_days_model.dart';
 import '../../widgets/school_logo_widget.dart';
@@ -951,6 +952,8 @@ class _SchoolSettingsScreenState extends State<SchoolSettingsScreen>
   // TAB 1: SCHOOL PROFILE
   // -------------------------------------------------------------
   Widget _buildSchoolProfileTab() {
+    final state = context.watch<AppStateProvider>();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Card(
@@ -959,6 +962,116 @@ class _SchoolSettingsScreenState extends State<SchoolSettingsScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // APP LANGUAGE PREFERENCE SECTION
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.language_rounded, color: AppColors.primary, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          context.tr('app_language_settings'),
+                          style: const TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.tr('app_language_desc'),
+                      style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: AppTranslations.supportedLanguages.map((lang) {
+                        final code = lang['code']!;
+                        final isSelected = state.currentLanguage == code;
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: InkWell(
+                              onTap: () {
+                                state.setLanguage(code);
+                                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      code == 'mr'
+                                          ? 'भाषा मराठीमध्ये बदलली आहे.'
+                                          : code == 'en'
+                                              ? 'Language changed to English.'
+                                              : 'भाषा हिंदी में बदली गई है।',
+                                    ),
+                                    duration: const Duration(seconds: 2),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(10),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.primary.withOpacity(0.08)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : const Color(0xFFCBD5E1),
+                                    width: isSelected ? 1.8 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      lang['flag']!,
+                                      style: const TextStyle(fontSize: 22),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      lang['name']!,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                        color: isSelected ? AppColors.primary : const Color(0xFF334155),
+                                      ),
+                                    ),
+                                    Text(
+                                      lang['englishName']!,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isSelected ? AppColors.primary : AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
               const Row(
                 children: [
                   Icon(Icons.account_balance, color: AppColors.primary),

@@ -91,6 +91,7 @@ class AppStateProvider extends ChangeNotifier {
   String _supabaseAnonKey = '';
   bool _isCloudConnected = false;
   bool _isLoading = true;
+  String _currentLanguage = 'mr'; // 'mr', 'en', 'hi'
 
   AppUpdateInfo? _availableUpdate;
   AppUpdateInfo? _automaticUpdatePrompt;
@@ -120,6 +121,20 @@ class AppStateProvider extends ChangeNotifier {
   String get supabaseAnonKey => _supabaseAnonKey;
   bool get isCloudConnected => _isCloudConnected;
   bool get isLoading => _isLoading;
+  String get currentLanguage => _currentLanguage;
+
+  Future<void> setLanguage(String langCode) async {
+    if (_currentLanguage == langCode) return;
+    if (langCode != 'mr' && langCode != 'en' && langCode != 'hi') return;
+    _currentLanguage = langCode;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cce_app_language', langCode);
+    } catch (e) {
+      debugPrint('Save language error: $e');
+    }
+  }
   AppUpdateInfo? get availableUpdate => _availableUpdate;
   AppUpdateInfo? get automaticUpdatePrompt => _automaticUpdatePrompt;
   bool get isCheckingUpdate => _isCheckingUpdate;
@@ -1999,6 +2014,10 @@ class AppStateProvider extends ChangeNotifier {
   Future<void> _loadFromLocal() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final savedLang = prefs.getString('cce_app_language');
+      if (savedLang != null && (savedLang == 'mr' || savedLang == 'en' || savedLang == 'hi')) {
+        _currentLanguage = savedLang;
+      }
       final schoolStr = prefs.getString('cce_school');
       if (schoolStr != null) {
         _school = SchoolModel.fromJson(jsonDecode(schoolStr));

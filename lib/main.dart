@@ -5,8 +5,11 @@ import 'package:provider/provider.dart';
 import 'core/services/app_update_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_colors.dart';
+import 'core/localization/app_translations.dart';
 import 'providers/app_state_provider.dart';
 import 'widgets/app_sidebar.dart';
+import 'widgets/language_selector_sheet.dart';
+import 'widgets/user_profile_modal.dart';
 import 'widgets/windows_page_nav_bar.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/school_settings/school_settings_screen.dart';
@@ -104,6 +107,30 @@ class _MainShellScreenState extends State<MainShellScreen> {
   AppStateProvider? _observedState;
   String? _shownUpdateVersion;
   String? _lastSessionUserId;
+  DateTime? _lastBackPressTime;
+
+  void _handleAppExit(BuildContext context) {
+    final now = DateTime.now();
+    if (_lastBackPressTime == null ||
+        now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+      _lastBackPressTime = now;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr('press_again_to_exit') != 'press_again_to_exit'
+                ? context.tr('press_again_to_exit')
+                : 'बाहेर पडण्यासाठी पुन्हा बॅक बटण दाबा',
+          ),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    } else {
+      SystemNavigator.pop();
+    }
+  }
 
   @override
   void initState() {
@@ -487,36 +514,296 @@ class _MainShellScreenState extends State<MainShellScreen> {
     }
 
     if (isMobile) {
-      return Scaffold(
-        appBar: AppBar(
-          backgroundColor: AppColors.sidebarBg,
-          foregroundColor: Colors.white,
-          title: Text(
-            effectiveIndex == 15
-                ? 'विद्यार्थी व पालक पोर्टल 📱'
-                : 'iSecure EduMaster CCE Pro',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.school, color: AppColors.accent),
-              tooltip: 'विद्यार्थी व पालक पोर्टल (Student & Parent)',
-              onPressed: () => _navigateTo(15),
+      final scaffoldKey = GlobalKey<ScaffoldState>();
+      final int bottomNavIndex;
+      if (isStudent) {
+        switch (effectiveIndex) {
+          case 5:
+            bottomNavIndex = 1;
+            break;
+          case 6:
+            bottomNavIndex = 2;
+            break;
+          case 27:
+            bottomNavIndex = 3;
+            break;
+          case 15:
+          default:
+            bottomNavIndex = 0;
+            break;
+        }
+      } else {
+        switch (effectiveIndex) {
+          case 0:
+            bottomNavIndex = 0;
+            break;
+          case 2:
+            bottomNavIndex = 1;
+            break;
+          case 3:
+            bottomNavIndex = 2;
+            break;
+          case 27:
+            bottomNavIndex = 3;
+            break;
+          default:
+            bottomNavIndex = 4;
+            break;
+        }
+      }
+
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (_canGoBack(isStudent)) {
+            _goBack(isStudent);
+          } else {
+            _handleAppExit(context);
+          }
+        },
+        child: Scaffold(
+          key: scaffoldKey,
+          appBar: AppBar(
+            backgroundColor: AppColors.sidebarBg,
+            foregroundColor: Colors.white,
+            elevation: 1,
+            titleSpacing: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.menu_rounded, color: Colors.white),
+              tooltip: 'मेनू उघडा',
+              onPressed: () => scaffoldKey.currentState?.openDrawer(),
             ),
-          ],
-        ),
-        drawer: Drawer(
-          child: Builder(
-            builder: (drawerCtx) => AppSidebar(
-              selectedIndex: effectiveIndex,
-              onDestinationSelected: (idx) {
-                Navigator.of(drawerCtx).pop();
-                _navigateTo(idx);
-              },
+            title: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white.withOpacity(0.12),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      'assets/images/isecure_favicon.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.school_rounded,
+                        color: AppColors.accent,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    AppTranslations.screenTitle(
+                      effectiveIndex,
+                      state.currentLanguage,
+                      isStudent: isStudent,
+                    ),
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              // Quick Language Switcher Pill
+              InkWell(
+                onTap: () => LanguageSelectorSheet.show(context),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        state.currentLanguage == 'mr'
+                            ? '🚩 MR'
+                            : state.currentLanguage == 'hi'
+                                ? '🇮🇳 HI'
+                                : '🇬🇧 EN',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 16),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              // User Profile Avatar with Role Ring
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: InkWell(
+                  onTap: () => UserProfileModal.show(context),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: state.currentUser?.isSuperAdmin == true
+                            ? const Color(0xFFEF4444)
+                            : state.currentUser?.isAdmin == true
+                                ? const Color(0xFF3B82F6)
+                                : const Color(0xFF10B981),
+                        width: 1.8,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 13,
+                      backgroundColor: state.currentUser?.isSuperAdmin == true
+                          ? const Color(0xFFDC2626)
+                          : state.currentUser?.isAdmin == true
+                              ? const Color(0xFF2563EB)
+                              : const Color(0xFF059669),
+                      child: Icon(
+                        state.currentUser?.isSuperAdmin == true
+                            ? Icons.security_rounded
+                            : state.currentUser?.isAdmin == true
+                                ? Icons.admin_panel_settings_rounded
+                                : Icons.person_rounded,
+                        size: 15,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          drawer: Drawer(
+            child: Builder(
+              builder: (drawerCtx) => AppSidebar(
+                selectedIndex: effectiveIndex,
+                onDestinationSelected: (idx) {
+                  Navigator.of(drawerCtx).pop();
+                  _navigateTo(idx);
+                },
+              ),
             ),
           ),
+          body: isWindows ? buildContentWithWindowsNavBar() : currentScreen,
+          bottomNavigationBar: NavigationBar(
+            height: 64,
+            elevation: 3,
+            backgroundColor: Colors.white,
+            indicatorColor: AppColors.primary.withOpacity(0.14),
+            selectedIndex: bottomNavIndex,
+            onDestinationSelected: (idx) {
+              if (isStudent) {
+                switch (idx) {
+                  case 0:
+                    _navigateTo(15);
+                    break;
+                  case 1:
+                    _navigateTo(5);
+                    break;
+                  case 2:
+                    _navigateTo(6);
+                    break;
+                  case 3:
+                    _navigateTo(27);
+                    break;
+                  case 4:
+                    UserProfileModal.show(context);
+                    break;
+                }
+              } else {
+                switch (idx) {
+                  case 0:
+                    _navigateTo(0);
+                    break;
+                  case 1:
+                    _navigateTo(2);
+                    break;
+                  case 2:
+                    _navigateTo(3);
+                    break;
+                  case 3:
+                    _navigateTo(27);
+                    break;
+                  case 4:
+                    scaffoldKey.currentState?.openDrawer();
+                    break;
+                }
+              }
+            },
+            destinations: isStudent
+                ? [
+                    NavigationDestination(
+                      icon: const Icon(Icons.school_outlined, size: 22),
+                      selectedIcon: const Icon(Icons.school_rounded, color: AppColors.primary, size: 22),
+                      label: context.tr('nav_portal'),
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.event_available_outlined, size: 22),
+                      selectedIcon: const Icon(Icons.event_available_rounded, color: AppColors.primary, size: 22),
+                      label: context.tr('nav_attendance'),
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.card_membership_outlined, size: 22),
+                      selectedIcon: const Icon(Icons.card_membership_rounded, color: AppColors.primary, size: 22),
+                      label: context.tr('progress_card'),
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.menu_book_outlined, size: 22),
+                      selectedIcon: const Icon(Icons.menu_book_rounded, color: AppColors.primary, size: 22),
+                      label: context.tr('nav_ebooks'),
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.person_outline_rounded, size: 22),
+                      selectedIcon: const Icon(Icons.person_rounded, color: AppColors.primary, size: 22),
+                      label: context.tr('nav_profile'),
+                    ),
+                  ]
+                : [
+                    NavigationDestination(
+                      icon: const Icon(Icons.dashboard_outlined, size: 22),
+                      selectedIcon: const Icon(Icons.dashboard_rounded, color: AppColors.primary, size: 22),
+                      label: context.tr('nav_home'),
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.people_alt_outlined, size: 22),
+                      selectedIcon: const Icon(Icons.people_alt_rounded, color: AppColors.primary, size: 22),
+                      label: context.tr('nav_students'),
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.fact_check_outlined, size: 22),
+                      selectedIcon: const Icon(Icons.fact_check_rounded, color: AppColors.primary, size: 22),
+                      label: context.tr('nav_marks'),
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.menu_book_outlined, size: 22),
+                      selectedIcon: const Icon(Icons.menu_book_rounded, color: AppColors.primary, size: 22),
+                      label: context.tr('nav_ebooks'),
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.grid_view_rounded, size: 22),
+                      selectedIcon: const Icon(Icons.grid_view_rounded, color: AppColors.primary, size: 22),
+                      label: context.tr('nav_more'),
+                    ),
+                  ],
+          ),
         ),
-        body: isWindows ? buildContentWithWindowsNavBar() : currentScreen,
       );
     }
 

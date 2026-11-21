@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
+import '../core/localization/app_translations.dart';
 import '../core/services/app_update_service.dart';
 import '../providers/app_state_provider.dart';
 import 'school_logo_widget.dart';
+import 'user_profile_modal.dart';
 
 class AppSidebar extends StatelessWidget {
   final int selectedIndex;
@@ -133,90 +135,161 @@ class AppSidebar extends StatelessWidget {
                 // Current Logged In User Profile & Logout
                 if (state.currentUser != null) ...[
                   const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: state.currentUser!.isAdmin
-                            ? const Color(0xFF3B82F6)
-                            : const Color(0xFF10B981),
-                        width: 1.2,
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => UserProfileModal.show(context),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: state.currentUser!.isAdmin
+                                ? const Color(0xFF3B82F6)
+                                : const Color(0xFF10B981),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 13,
+                              backgroundColor: state.currentUser!.isSuperAdmin
+                                  ? const Color(0xFFDC2626)
+                                  : (state.currentUser!.isAdmin
+                                        ? const Color(0xFF2563EB)
+                                        : const Color(0xFF059669)),
+                              child: Icon(
+                                state.currentUser!.isSuperAdmin
+                                    ? Icons.security
+                                    : (state.currentUser!.isAdmin
+                                          ? Icons.admin_panel_settings
+                                          : Icons.person),
+                                size: 15,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    state.currentUser!.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    state.currentUser!.isSuperAdmin
+                                        ? 'सुपर ॲडमिन (सर्वोच्च अधिकार)'
+                                        : (state.currentUser!.isAdmin
+                                              ? '${state.currentUser!.roleTextMr} (पूर्ण अधिकार)'
+                                              : state
+                                                    .currentUser!
+                                                    .allocationSummary),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: state.currentUser!.isSuperAdmin
+                                          ? const Color(0xFFFCA5A5)
+                                          : (state.currentUser!.isAdmin
+                                                ? const Color(0xFF93C5FD)
+                                                : const Color(0xFF6EE7B7)),
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.logout,
+                                size: 15,
+                                color: Color(0xFFF87171),
+                              ),
+                              tooltip: 'लॉगआउट (Sign Out)',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () => _confirmLogout(context, state),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                  ),
+
+                  // Language Switcher Strip (Marathi, English, Hindi)
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF334155)),
+                    ),
                     child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 13,
-                          backgroundColor: state.currentUser!.isSuperAdmin
-                              ? const Color(0xFFDC2626)
-                              : (state.currentUser!.isAdmin
-                                    ? const Color(0xFF2563EB)
-                                    : const Color(0xFF059669)),
-                          child: Icon(
-                            state.currentUser!.isSuperAdmin
-                                ? Icons.security
-                                : (state.currentUser!.isAdmin
-                                      ? Icons.admin_panel_settings
-                                      : Icons.person),
-                            size: 15,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                state.currentUser!.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
+                      children: AppTranslations.supportedLanguages.map((lang) {
+                        final code = lang['code']!;
+                        final isSelected = state.currentLanguage == code;
+                        return Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              state.setLanguage(code);
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    code == 'mr'
+                                        ? 'भाषा मराठीमध्ये बदलली आहे.'
+                                        : code == 'en'
+                                            ? 'Language set to English.'
+                                            : 'भाषा हिंदी में बदली गई है।',
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isSelected ? AppColors.primary : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
                               ),
-                              Text(
-                                state.currentUser!.isSuperAdmin
-                                    ? 'सुपर ॲडमिन (सर्वोच्च अधिकार)'
-                                    : (state.currentUser!.isAdmin
-                                          ? '${state.currentUser!.roleTextMr} (पूर्ण अधिकार)'
-                                          : state
-                                                .currentUser!
-                                                .allocationSummary),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: state.currentUser!.isSuperAdmin
-                                      ? const Color(0xFFFCA5A5)
-                                      : (state.currentUser!.isAdmin
-                                            ? const Color(0xFF93C5FD)
-                                            : const Color(0xFF6EE7B7)),
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(lang['flag']!, style: const TextStyle(fontSize: 10)),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    lang['name']!,
+                                    style: TextStyle(
+                                      color: isSelected ? Colors.white : Colors.white70,
+                                      fontSize: 10,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.logout,
-                            size: 15,
-                            color: Color(0xFFF87171),
-                          ),
-                          tooltip: 'लॉगआउट (Sign Out)',
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: () => _confirmLogout(context, state),
-                        ),
-                      ],
+                        );
+                      }).toList(),
                     ),
                   ),
                 ],
