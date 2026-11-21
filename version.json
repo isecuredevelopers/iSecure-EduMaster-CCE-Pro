@@ -1,11 +1,11 @@
 {
-  "version": "1.4.3",
-  "build": 8,
-  "release_date": "2026-11-20",
-  "title": "iSecure EduMaster CCE Pro v1.4.3",
-  "changelog": "- Android APK auto-install FileProvider path compatibility fixed.\n- Direct external cache download for smooth package installer launch.\n- Simplified update dialog: Clean Old vs New version with 1-click update.",
+  "version": "1.4.4",
+  "build": 9,
+  "release_date": "2026-11-21",
+  "title": "iSecure EduMaster CCE Pro v1.4.4",
+  "changelog": "- Fixed GitHub Actions CI/CD workflow assembleRelease build exception.\n- Removed obsolete subprojects evaluationDependsOn for Gradle Kotlin DSL compatibility.\n- Android FileProvider APK auto-install external cache support.",
   "download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/latest",
-  "android_download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/download/v1.4.3/iSecure-EduMaster-CCE-Pro-v1.4.3-Android.apk",
-  "windows_download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/download/v1.4.3/iSecure-EduMaster-CCE-Pro-v1.4.3-Windows.zip",
+  "android_download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/download/v1.4.4/iSecure-EduMaster-CCE-Pro-v1.4.4-Android.apk",
+  "windows_download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/download/v1.4.4/iSecure-EduMaster-CCE-Pro-v1.4.4-Windows.zip",
   "is_mandatory": false
 }

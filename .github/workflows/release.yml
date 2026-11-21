@@ -51,8 +51,8 @@ jobs:
           if (-not $ver) { $ver = "${{ inputs.version }}" }
           if (-not $ver) { $ver = "1.0.0" }
           $zipName = "iSecure-EduMaster-CCE-Pro-$ver-Windows.zip"
-          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $zipName
-          Copy-Item -Path "build\app\outputs\flutter-apk\app-release.apk" -Destination "iSecure-EduMaster-CCE-Pro-$ver-Android.apk"
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $zipName -Force
+          Copy-Item -Path "build\app\outputs\flutter-apk\app-release.apk" -Destination "iSecure-EduMaster-CCE-Pro-$ver-Android.apk" -Force
           Write-Host "Created release packages: $zipName and iSecure-EduMaster-CCE-Pro-$ver-Android.apk"
 
       - name: Publish GitHub Release
@@ -75,5 +75,6 @@ jobs:
             iSecure-EduMaster-CCE-Pro-*-Windows.zip
             iSecure-EduMaster-CCE-Pro-*-Android.apk
             version.json
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
