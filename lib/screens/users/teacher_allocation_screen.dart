@@ -213,7 +213,7 @@ class _TeacherAllocationScreenState extends State<TeacherAllocationScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'युझरनेम: ${user.username} • पासवर्ड: ${user.password}',
+                                'युझरनेम: ${user.username} • पासवर्ड: •••••••• (सुरक्षित एनक्रिप्टेड)',
                                 style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                               ),
                               if (user.mobile.isNotEmpty) ...[

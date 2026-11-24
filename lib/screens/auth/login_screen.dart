@@ -197,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!success) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'अवैध वापरकर्ता नाव किंवा पासवर्ड! कृपया पुन्हा प्रयत्न करा.';
+          _errorMessage = state.loginErrorMessage ?? 'अवैध वापरकर्ता नाव किंवा पासवर्ड! कृपया पुन्हा प्रयत्न करा.';
         });
         return;
       }

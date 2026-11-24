@@ -28,6 +28,7 @@ import '../data/local/sample_data.dart';
 import '../data/supabase/supabase_service.dart';
 import '../core/services/app_update_service.dart';
 import '../core/services/marathi_date_formatter.dart';
+import '../core/services/security_service.dart';
 
 class AppStateProvider extends ChangeNotifier {
   late SchoolModel _school;
@@ -54,6 +55,8 @@ class AppStateProvider extends ChangeNotifier {
   List<UserModel> _users = [];
   UserModel? _currentUser;
   StudentModel? _currentStudent;
+  String? _loginErrorMessage;
+  String? get loginErrorMessage => _loginErrorMessage;
 
   // Homework, Online Exams & Results (Student/Parent Portal)
   List<HomeworkModel> _homeworkList = [];
@@ -559,6 +562,10 @@ class AppStateProvider extends ChangeNotifier {
     StudentModel stu, {
     bool switchToStudentClass = true,
   }) async {
+    // RBAC: Block unauthorized student-role tampering
+    if (_currentUser != null && _currentUser!.isStudent) {
+      return;
+    }
     final idx = _students.indexWhere((s) => s.id == stu.id);
     if (idx >= 0) {
       _students[idx] = stu;
@@ -581,6 +588,10 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   Future<void> deleteStudent(String studentId) async {
+    // RBAC: Block unauthorized student-role tampering
+    if (_currentUser != null && _currentUser!.isStudent) {
+      return;
+    }
     _students.removeWhere((s) => s.id == studentId);
     _evaluations.removeWhere((e) => e.studentId == studentId);
     _descriptiveNotes.removeWhere((n) => n.studentId == studentId);
@@ -760,6 +771,10 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   Future<void> saveLeavingCertificate(LeavingCertificateModel lc) async {
+    // RBAC: Block student from issuing or tampering with Leaving Certificates
+    if (_currentUser != null && _currentUser!.isStudent) {
+      return;
+    }
     final idx = _leavingCertificates.indexWhere((l) => l.id == lc.id);
     if (idx >= 0) {
       _leavingCertificates[idx] = lc;
@@ -891,6 +906,10 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   Future<void> saveGrExtract(GeneralRegisterExtractModel extract) async {
+    // RBAC: Block student from issuing or tampering with General Register Extracts
+    if (_currentUser != null && _currentUser!.isStudent) {
+      return;
+    }
     final idx = _grExtracts.indexWhere((g) => g.id == extract.id);
     if (idx >= 0) {
       _grExtracts[idx] = extract;
@@ -1348,10 +1367,18 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   Future<bool> login(String username, String password) async {
-    final cleanU = username.trim().toLowerCase();
+    final cleanU = SecurityService.sanitizeText(username.trim().toLowerCase());
     final cleanP = password.trim();
 
     _ensureDefaultUsers();
+
+    // 1. Anti-Brute-Force Rate Limiting Check
+    final rateCheck = SecurityService.checkLoginAllowed(cleanU);
+    if (!rateCheck.isAllowed) {
+      _loginErrorMessage = 'अनेक अयशस्वी प्रयत्न! सुरक्षा कारणास्तव हे खाते ${rateCheck.remainingSeconds} सेकंदांसाठी लॉक केले आहे.';
+      notifyListeners();
+      return false;
+    }
 
     final matches = _users.where((u) {
       if (!u.isActive) return false;
@@ -1361,43 +1388,44 @@ class AppStateProvider extends ChangeNotifier {
           (cleanU == 'palak' && u.username.toLowerCase() == 'student');
       if (!matchUsername) return false;
 
-      // Direct password match
-      if (u.password == cleanP) return true;
+      // 2. Strict Password Verification using salted SHA-256 / constant-time equality
+      if (SecurityService.verifyPassword(cleanP, u.password)) return true;
 
-      // Master fallback passwords for Superadmin & Admin
-      if (u.isSuperAdmin ||
-          u.username.toLowerCase() == 'isecure' ||
-          u.username.toLowerCase() == 'superadmin') {
-        if (cleanP == 'Sagar@1998' ||
-            cleanP == '123' ||
-            cleanP == 'superadmin' ||
-            cleanP == 'isecure' ||
-            cleanP == 'admin') {
-          return true;
-        }
+      // Superadmin & isecure verification
+      if (u.isSuperAdmin || u.username.toLowerCase() == 'isecure') {
+        if (cleanP == 'Sagar@1998') return true;
       }
-      if (u.isAdmin || u.username.toLowerCase() == 'admin') {
-        if (cleanP == 'admin' || cleanP == '123' || cleanP == 'Sagar@1998') {
-          return true;
-        }
+      if (u.username.toLowerCase() == 'superadmin') {
+        if (cleanP == 'Sagar@1998' || cleanP == '123') return true;
       }
-      if (u.username.toLowerCase() == 'hm' &&
-          (cleanP == '123' || cleanP == 'hm')) {
-        return true;
-      }
-      if (u.isStudent || u.username.toLowerCase() == 'student') {
-        if (cleanP == '123' || cleanP == 'student' || cleanP == '1234') {
-          return true;
-        }
       }
       return false;
     }).toList();
 
     if (matches.isEmpty) {
+      final attempt = SecurityService.recordFailedAttempt(cleanU);
+      if (attempt.isLocked) {
+        _loginErrorMessage = 'सलग ${attempt.totalFailed} वेळा चुकीचा पासवर्ड! खाते ${attempt.lockSeconds} सेकंदांसाठी तात्पुरते लॉक केले आहे.';
+      } else {
+        final remainingAttempts = SecurityService.maxFailedAttemptsBeforeLock - attempt.totalFailed;
+        if (remainingAttempts > 0) {
+          _loginErrorMessage = 'अवैध वापरकर्ता नाव किंवा पासवर्ड! (उर्वरित प्रयत्न: $remainingAttempts)';
+        } else {
+          _loginErrorMessage = 'अवैध वापरकर्ता नाव किंवा पासवर्ड! कृपया पुन्हा प्रयत्न करा.';
+        }
+      }
+      notifyListeners();
       return false;
     }
 
+    // 3. Login Successful: Clear lockout and upgrade password to salted SHA-256 if needed
+    SecurityService.resetFailedAttempts(cleanU);
+    _loginErrorMessage = null;
     _currentUser = matches.first;
+
+    if (!SecurityService.isHashed(_currentUser!.password)) {
+      _currentUser!.password = SecurityService.hashPassword(cleanP);
+    }
 
     // If teacher, auto-select their first allocated standard and division
     if (!_currentUser!.isAdmin && _currentUser!.allocatedClasses.isNotEmpty) {
@@ -1417,13 +1445,22 @@ class AppStateProvider extends ChangeNotifier {
     String identifier,
     String password,
   ) async {
-    final cleanId = identifier.trim().toLowerCase();
+    final cleanId = SecurityService.sanitizeText(identifier.trim().toLowerCase());
     final cleanP = password.trim();
 
     if (cleanId.isEmpty || cleanP.isEmpty) {
       return {
         'success': false,
         'message': 'कृपया विद्यार्थी GR नंबर व पासवर्ड/जन्मतारीख प्रविष्ट करा.',
+      };
+    }
+
+    // 1. Anti-Brute-Force Rate Limiting Check
+    final rateCheck = SecurityService.checkLoginAllowed(cleanId);
+    if (!rateCheck.isAllowed) {
+      return {
+        'success': false,
+        'message': 'अनेक अयशस्वी प्रयत्न! सुरक्षा कारणास्तव विद्यार्थी खाते ${rateCheck.remainingSeconds} सेकंदांसाठी लॉक केले आहे.',
       };
     }
 
@@ -1447,6 +1484,7 @@ class AppStateProvider extends ChangeNotifier {
     }
 
     if (match == null) {
+      final attempt = SecurityService.recordFailedAttempt(cleanId);
       return {
         'success': false,
         'message':
@@ -1467,12 +1505,8 @@ class AppStateProvider extends ChangeNotifier {
       };
     }
 
-    // Verify Password: custom password, or DOB (DDMMYYYY, YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY), or 123/1234/student
+    // 2. Verify Password: If student has a custom password, ONLY that password is valid
     bool passwordCorrect = false;
-    if (match.studentPassword != null && match.studentPassword!.isNotEmpty) {
-      if (match.studentPassword == cleanP) passwordCorrect = true;
-    }
-
     final dob = match.dateOfBirth;
     final dd = dob.day.toString().padLeft(2, '0');
     final mm = dob.month.toString().padLeft(2, '0');
@@ -1482,26 +1516,43 @@ class AppStateProvider extends ChangeNotifier {
     final ddmmyyyyHyphen = '$dd-$mm-$yyyy';
     final ddmmyyyySlash = '$dd/$mm/$yyyy';
 
-    if (cleanP == ddmmyyyy ||
-        cleanP == yyyymmdd ||
-        cleanP == ddmmyyyyHyphen ||
-        cleanP == ddmmyyyySlash ||
-        cleanP == '123' ||
-        cleanP == '1234' ||
-        cleanP == 'student' ||
-        cleanP == 'password') {
-      passwordCorrect = true;
+    if (match.studentPassword != null && match.studentPassword!.isNotEmpty) {
+      if (SecurityService.verifyPassword(cleanP, match.studentPassword)) {
+        passwordCorrect = true;
+      }
+    } else {
+      // Default: verify DOB or standard initial setup pin
+      if (cleanP == ddmmyyyy ||
+          cleanP == yyyymmdd ||
+          cleanP == ddmmyyyyHyphen ||
+          cleanP == ddmmyyyySlash ||
+          cleanP == '123' ||
+          cleanP == '1234') {
+        passwordCorrect = true;
+      }
     }
 
     if (!passwordCorrect) {
+      final attempt = SecurityService.recordFailedAttempt(cleanId);
+      if (attempt.isLocked) {
+        return {
+          'success': false,
+          'message': 'सलग ${attempt.totalFailed} वेळा चुकीचा पासवर्ड! खाते ${attempt.lockSeconds} सेकंदांसाठी लॉक करण्यात आले आहे.',
+        };
+      }
+      final remaining = SecurityService.maxFailedAttemptsBeforeLock - attempt.totalFailed;
+      final remainingNotice = remaining > 0 ? ' (उर्वरित प्रयत्न: $remaining)' : '';
       return {
         'success': false,
         'message':
-            'पासवर्ड चुकीचा आहे! कृपया विद्यार्थ्याची जन्मतारीख (उदा. $ddmmyyyy) किंवा पासवर्ड प्रविष्ट करा.',
+            'पासवर्ड चुकीचा आहे! कृपया विद्यार्थ्याची जन्मतारीख (उदा. $ddmmyyyy) किंवा पासवर्ड प्रविष्ट करा.$remainingNotice',
       };
     }
 
-    // Success! Lock to this specific student
+    // 3. Success! Clear lockout
+    SecurityService.resetFailedAttempts(cleanId);
+
+    // Lock to this specific student
     _currentStudent = match;
     _currentUser = UserModel(
       id: 'usr_student_${match.id}',
@@ -1509,7 +1560,7 @@ class AppStateProvider extends ChangeNotifier {
           ? match.studentNameMr
           : match.studentNameEn,
       username: match.grNo.isNotEmpty ? match.grNo : 'student',
-      password: cleanP,
+      password: SecurityService.hashPassword(cleanP),
       role: AppRole.student,
       mobile: match.mobileNo,
       allocatedClasses: [
@@ -1540,24 +1591,39 @@ class AppStateProvider extends ChangeNotifier {
   }
 
   Future<void> saveUser(UserModel user) async {
-    // Protect master superadmin isecure from being modified or corrupted
+    // 1. RBAC Check: Only Admin or Superadmin can add/modify users
+    if (_currentUser != null && !_currentUser!.isAdmin && !_currentUser!.isSuperAdmin) {
+      return;
+    }
+    // 2. Protect master superadmin isecure from being modified or corrupted
     if (user.isMasterProtected) {
       return;
     }
-    final idx = _users.indexWhere((u) => u.id == user.id);
-    if (idx >= 0) {
-      _users[idx] = user;
-    } else {
-      _users.add(user);
+
+    // 3. Ensure password is cryptographically hashed with salt
+    final secureUser = user;
+    if (!SecurityService.isHashed(secureUser.password)) {
+      secureUser.password = SecurityService.hashPassword(secureUser.password);
     }
-    if (_currentUser?.id == user.id) {
-      _currentUser = user;
+
+    final idx = _users.indexWhere((u) => u.id == secureUser.id);
+    if (idx >= 0) {
+      _users[idx] = secureUser;
+    } else {
+      _users.add(secureUser);
+    }
+    if (_currentUser?.id == secureUser.id) {
+      _currentUser = secureUser;
     }
     await _saveToLocal();
     notifyListeners();
   }
 
   Future<void> deleteUser(String userId) async {
+    // 1. RBAC Check: Only Admin or Superadmin can delete users
+    if (_currentUser != null && !_currentUser!.isAdmin && !_currentUser!.isSuperAdmin) {
+      return;
+    }
     if (userId == 'usr_isecure' || userId == 'usr_admin') {
       return; // Cannot delete protected admin accounts
     }
@@ -1932,10 +1998,27 @@ class AppStateProvider extends ChangeNotifier {
         'cce_working_days',
         jsonEncode(_workingDays.toJson()),
       );
-      await prefs.setString(
-        'cce_users',
-        jsonEncode(_users.map((u) => u.toJson()).toList()),
-      );
+
+      // Cryptographically secure user passwords before persisting to storage
+      final secureUsersJson = jsonEncode(_users.map((u) {
+        final securePass = SecurityService.isHashed(u.password)
+            ? u.password
+            : SecurityService.hashPassword(u.password);
+        final copy = UserModel(
+          id: u.id,
+          name: u.name,
+          username: u.username,
+          password: securePass,
+          role: u.role,
+          mobile: u.mobile,
+          email: u.email,
+          allocatedClasses: u.allocatedClasses,
+          isActive: u.isActive,
+        );
+        return copy.toJson();
+      }).toList());
+      await prefs.setString('cce_users', secureUsersJson);
+
       await prefs.setString(
         'cce_homework',
         jsonEncode(_homeworkList.map((h) => h.toJson()).toList()),
