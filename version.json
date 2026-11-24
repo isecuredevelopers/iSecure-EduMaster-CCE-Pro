@@ -1,11 +1,11 @@
 {
-  "version": "1.5.0",
-  "build": 10,
-  "release_date": "2026-11-21",
-  "title": "iSecure EduMaster CCE Pro v1.5.0",
-  "changelog": "- Added Multi-Language Support (English, Marathi, Hindi) in Profile, Sidebar, School Settings, and Login.\n- Complete Android Mobile UI overhaul: Modern AppBar, 5-tab BottomNavigationBar, and responsive layout.\n- Ergonomic back gesture handling with PopScope on Android.\n- Responsive Dashboard metric cards and CCE workflow cards for all screen sizes.",
+  "version": "1.5.1",
+  "build": 11,
+  "release_date": "2026-11-24",
+  "title": "iSecure EduMaster CCE Pro v1.5.1",
+  "changelog": "- Comprehensive Anti-Hacking Security Hardening & Obfuscation.\n- Android Manifest & ProGuard/R8 bytecode obfuscation and log stripping.\n- Salted SHA-256 password hashing with pepper and constant-time verification.\n- Anti-Brute-Force rate limiting and temporary account lockout.\n- Role-Based Access Control (RBAC) and directory traversal sanitization.\n- Multi-language support (English, Marathi, Hindi) and mobile UI overhaul.",
   "download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/latest",
-  "android_download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/download/v1.5.0/iSecure-EduMaster-CCE-Pro-v1.5.0-Android.apk",
-  "windows_download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/download/v1.5.0/iSecure-EduMaster-CCE-Pro-v1.5.0-Windows.zip",
+  "android_download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/download/v1.5.1/iSecure-EduMaster-CCE-Pro-v1.5.1-Android.apk",
+  "windows_download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/download/v1.5.1/iSecure-EduMaster-CCE-Pro-v1.5.1-Windows.zip",
   "is_mandatory": false
 }

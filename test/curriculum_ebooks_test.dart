@@ -29,14 +29,14 @@ void main() {
 
         for (final sub in subjects) {
           // Check e-book URL or extra ebooks
-          if (sub.ebookPdfUrl != null && sub.ebookPdfUrl!.isNotEmpty) {
+          if (sub.ebookPdfUrl.isNotEmpty) {
             expect(
-              sub.ebookPdfUrl!.startsWith('https://ebooks.ebalbharati.in/pdfs/'),
+              sub.ebookPdfUrl.startsWith('https://ebooks.ebalbharati.in/pdfs/'),
               isTrue,
               reason: '${sub.subjectName} in Class $std has valid Balbharati URL',
             );
             expect(sub.ebookCode, isNotNull);
-            expect(sub.ebookCode!.isNotEmpty, isTrue);
+            expect(sub.ebookCode.isNotEmpty, isTrue);
             expect(sub.publisher, contains('बालभारती'));
           }
 

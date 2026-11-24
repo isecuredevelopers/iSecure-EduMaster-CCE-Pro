@@ -1398,7 +1398,6 @@ class AppStateProvider extends ChangeNotifier {
       if (u.username.toLowerCase() == 'superadmin') {
         if (cleanP == 'Sagar@1998' || cleanP == '123') return true;
       }
-      }
       return false;
     }).toList();
 
@@ -1485,6 +1484,13 @@ class AppStateProvider extends ChangeNotifier {
 
     if (match == null) {
       final attempt = SecurityService.recordFailedAttempt(cleanId);
+      if (attempt.isLocked) {
+        return {
+          'success': false,
+          'message':
+              'सलग ${attempt.totalFailed} वेळा अवैध प्रयत्न! हे खाते ${attempt.lockSeconds} सेकंदांसाठी तात्पुरते लॉक केले आहे.',
+        };
+      }
       return {
         'success': false,
         'message':

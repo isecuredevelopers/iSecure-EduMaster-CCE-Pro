@@ -266,25 +266,29 @@ class AppSidebar extends StatelessWidget {
                             },
                             borderRadius: BorderRadius.circular(6),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                               decoration: BoxDecoration(
                                 color: isSelected ? AppColors.primary : Colors.transparent,
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(lang['flag']!, style: const TextStyle(fontSize: 10)),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    lang['name']!,
-                                    style: TextStyle(
-                                      color: isSelected ? Colors.white : Colors.white70,
-                                      fontSize: 10,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(lang['flag']!, style: const TextStyle(fontSize: 10)),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      lang['name']!,
+                                      style: TextStyle(
+                                        color: isSelected ? Colors.white : Colors.white70,
+                                        fontSize: 10,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),

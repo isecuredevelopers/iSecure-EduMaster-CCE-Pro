@@ -1456,12 +1456,14 @@ class _LeavingCertificateScreenState extends State<LeavingCertificateScreen> {
 
       if (confirm == true && context.mounted) {
         await state.issueLeavingCertificate(student, lc);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('दाखला यशस्वीरित्या वितरित झाला! विद्यार्थ्याचा मोबाइल ॲप ॲक्सेस बंद करण्यात आला आहे.'),
-            backgroundColor: Color(0xFF059669),
-          ),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('दाखला यशस्वीरित्या वितरित झाला! विद्यार्थ्याचा मोबाइल ॲप ॲक्सेस बंद करण्यात आला आहे.'),
+              backgroundColor: Color(0xFF059669),
+            ),
+          );
+        }
       }
     } else {
       final confirm = await showDialog<bool>(
@@ -1482,12 +1484,14 @@ class _LeavingCertificateScreenState extends State<LeavingCertificateScreen> {
 
       if (confirm == true && context.mounted) {
         await state.cancelLeavingCertificate(student);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('विद्यार्थी पूर्ववत नियमित करण्यात आला आहे व ॲप ॲक्सेस पुन्हा चालू झाला आहे.'),
-            backgroundColor: Color(0xFF2563EB),
-          ),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('विद्यार्थी पूर्ववत नियमित करण्यात आला आहे व ॲप ॲक्सेस पुन्हा चालू झाला आहे.'),
+              backgroundColor: Color(0xFF2563EB),
+            ),
+          );
+        }
       }
     }
   }

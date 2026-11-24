@@ -26,7 +26,7 @@ class SecurityService {
   }
 
   /// Hash a plaintext password using SHA-256 with a salt and internal pepper
-  /// Output format: "sha256$<salt>$<hashHex>"
+  /// Output format: `sha256$<salt>$<hashHex>`
   static String hashPassword(String plainPassword, {String? salt}) {
     final effectiveSalt = salt ?? generateSalt();
     final bytes = utf8.encode('$effectiveSalt:$plainPassword:$_pepper');
