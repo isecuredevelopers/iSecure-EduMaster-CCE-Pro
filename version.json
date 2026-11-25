@@ -1,11 +1,11 @@
 {
-  "version": "1.5.1",
-  "build": 11,
-  "release_date": "2026-11-24",
-  "title": "iSecure EduMaster CCE Pro v1.5.1",
-  "changelog": "- Comprehensive Anti-Hacking Security Hardening & Obfuscation.\n- Android Manifest & ProGuard/R8 bytecode obfuscation and log stripping.\n- Salted SHA-256 password hashing with pepper and constant-time verification.\n- Anti-Brute-Force rate limiting and temporary account lockout.\n- Role-Based Access Control (RBAC) and directory traversal sanitization.\n- Multi-language support (English, Marathi, Hindi) and mobile UI overhaul.",
+  "version": "1.5.2",
+  "build": 12,
+  "release_date": "2026-11-25",
+  "title": "iSecure EduMaster CCE Pro v1.5.2",
+  "changelog": "- Fixed Android in-app update package conflict error.\n- Permanent release signing key configured.\n- Performance and stability improvements.",
   "download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/latest",
-  "android_download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/download/v1.5.1/iSecure-EduMaster-CCE-Pro-v1.5.1-Android.apk",
-  "windows_download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/download/v1.5.1/iSecure-EduMaster-CCE-Pro-v1.5.1-Windows.zip",
+  "android_download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/download/v1.5.2/iSecure-EduMaster-CCE-Pro-v1.5.2-Android.apk",
+  "windows_download_url": "https://github.com/isecuredevelopers/iSecure-EduMaster-CCE-Pro/releases/download/v1.5.2/iSecure-EduMaster-CCE-Pro-v1.5.2-Windows.zip",
   "is_mandatory": false
 }

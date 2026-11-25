@@ -9,17 +9,17 @@ cd /d "%~dp0"
 
 echo [1/3] Adding files to Git...
 git add .
-git commit -m "feat: iSecure EduMaster CCE Pro v1.0.0 - Full School Management & Auto-Updater" 2>nul
+git commit -m "feat: iSecure EduMaster CCE Pro v1.5.2 - Permanent Release Signing Key & Update Fix" 2>nul
 
 echo.
-echo [2/3] Creating Release Tag v1.0.0...
-git tag -fa v1.0.0 -m "iSecure EduMaster CCE Pro Release v1.0.0"
+echo [2/3] Creating Release Tag v1.5.2...
+git tag -fa v1.5.2 -m "iSecure EduMaster CCE Pro Release v1.5.2"
 
 echo.
 echo [3/3] Pushing code and tags to GitHub...
 echo (जर ब्राउझर किंवा लॉगिन विंडो उघडली, तर कृपया GitHub वर Sign In / Authorize करा)
-git push -u origin main --force
-git push origin v1.0.0 --force
+git push -u origin main
+git push origin v1.5.2 --force
 
 echo.
 echo ========================================================
